@@ -51,30 +51,36 @@ export function drawPaperPanel(ctx, x, y, w, h, glow = false) {
 /**
  * 便签式选项（带微动效）。
  */
+/**
+ * @param {boolean} accent 仅标题页「开始」等主行动可 true；剧情选项应 false。
+ */
 export function drawStickyChoice(ctx, rect, label, accent, tick = 0, extraPulse = 0) {
-  const pulse = extraPulse + (accent ? 0.04 * Math.sin(tick * 0.007) : 0);
-  const tilt = accent ? pulse * 0.3 : 0.006;
+  const pulse = accent ? 0.03 * Math.sin(tick * 0.007) + extraPulse : 0;
+  const tilt = accent ? pulse * 0.2 : 0.003;
 
   ctx.save();
   ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2);
   ctx.rotate(tilt);
-  const scale = 1 + (accent ? pulse : 0);
-  ctx.scale(scale, scale);
+  if (accent) {
+    ctx.scale(1 + pulse, 1 + pulse);
+  }
   ctx.translate(-rect.w / 2, -rect.h / 2);
 
   ctx.fillStyle = accent ? '#fff9e8' : COLORS.paper;
   roundRectPath(ctx, 0, 0, rect.w, rect.h, 8);
   ctx.fill();
 
-  if (accent) {
-    ctx.shadowColor = COLORS.cyan;
-    ctx.shadowBlur = 8 + 6 * Math.sin(tick * 0.01);
-  }
-  ctx.strokeStyle = accent ? COLORS.cyan : COLORS.paperMuted;
-  ctx.lineWidth = accent ? 2 : 1;
+  ctx.strokeStyle = accent ? COLORS.cyan : 'rgba(42, 37, 32, 0.45)';
+  ctx.lineWidth = accent ? 2 : 1.5;
   roundRectPath(ctx, 0, 0, rect.w, rect.h, 8);
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  if (accent) {
+    ctx.shadowColor = COLORS.cyan;
+    ctx.shadowBlur = 6 + 4 * Math.sin(tick * 0.01);
+    roundRectPath(ctx, 0, 0, rect.w, rect.h, 8);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
 
   ctx.font = FONT.btn;
   ctx.fillStyle = COLORS.paperInk;

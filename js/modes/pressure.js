@@ -3,7 +3,7 @@
  */
 import { SCREEN_WIDTH } from '../render';
 import { COLORS, FONT } from '../theme';
-import { CHROME_HEIGHT } from '../layers/chrome';
+import { HUD_HEIGHT } from '../layers/chrome';
 
 let remainingSec = 0;
 let totalSec = 0;
@@ -52,7 +52,7 @@ export function drawPressureBar(ctx, label) {
   if (!active && remainingSec <= 0) {
     return;
   }
-  const y = CHROME_HEIGHT + 2;
+  const y = HUD_HEIGHT - 6;
   const w = SCREEN_WIDTH - 48;
   const x = 24;
   const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.012);

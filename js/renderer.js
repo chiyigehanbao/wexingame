@@ -4,9 +4,8 @@
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './render';
 import { COLORS, FONT, LAYOUT } from './theme';
 import { drawBackdrop, titlePulse } from './atmosphere';
-import { drawTopChrome } from './layers/chrome';
+import { drawTopChrome, drawHudProgress } from './layers/chrome';
 import {
-  drawHudProgress,
   drawCenteredScene,
   drawCenteredBlock,
   triggerSceneEnter,

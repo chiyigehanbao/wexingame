@@ -2,7 +2,7 @@
  * 游玩区居中布局：章节/标题/主纸纹框/扩展块/选项同一垂直栈，整体相对屏幕居中。
  */
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../render';
-import { CHROME_HEIGHT } from './chrome';
+import { HUD_HEIGHT } from './chrome';
 import { COLORS, FONT, LAYOUT } from '../theme';
 import {
   measureWrappedLines,
@@ -13,8 +13,7 @@ import {
   roundRectPath,
 } from './paper';
 
-/** 顶栏 + 幕进度点占用高度 */
-export const HUD_HEIGHT = CHROME_HEIGHT + 28;
+export { HUD_HEIGHT };
 
 const PLAY_BOTTOM = 28;
 const GAP = 12;
@@ -64,35 +63,6 @@ export function getPlayArea() {
     pad: LAYOUT.pad,
     innerW: SCREEN_WIDTH - LAYOUT.pad * 2 - LAYOUT.panelPad * 2,
   };
-}
-
-/**
- * 绘制固定 HUD 下的幕进度点（不占用居中栈）。
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} progress 1～10
- */
-export function drawHudProgress(ctx, progress) {
-  const y = CHROME_HEIGHT + 18;
-  const startX = SCREEN_WIDTH / 2 - 45;
-  for (let i = 1; i <= 10; i += 1) {
-    const cx = startX + (i - 1) * 10;
-    ctx.beginPath();
-    ctx.arc(cx, y, i <= progress ? 3.5 : 2.5, 0, Math.PI * 2);
-    if (i <= progress) {
-      ctx.fillStyle = i === progress ? COLORS.cyan : 'rgba(0, 245, 212, 0.28)';
-      ctx.fill();
-      if (i === progress) {
-        ctx.shadowColor = COLORS.cyan;
-        ctx.shadowBlur = 6 + 4 * Math.sin(Date.now() * 0.008);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-    } else {
-      ctx.strokeStyle = 'rgba(139, 156, 179, 0.35)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  }
 }
 
 function measureHeaderH(ctx, node, w) {
@@ -248,8 +218,7 @@ export function drawCenteredScene(ctx, node, opts) {
         label,
         ...(meta[index] || {}),
       };
-      const pulse = 0.06 * Math.sin(tick * 0.006 + index * 0.8);
-      drawStickyChoice(ctx, rect, label, index === 0, tick, pulse);
+      drawStickyChoice(ctx, rect, label, false, tick, 0);
       regions.push(rect);
       y += LAYOUT.btnH + LAYOUT.btnGap;
     });
