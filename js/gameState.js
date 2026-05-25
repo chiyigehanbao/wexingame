@@ -1,9 +1,7 @@
 /**
- * 对局状态：诚意/压力/AI 依赖、flags、章节日志、结局解析。
+ * 对局状态：诚意/压力/AI 依赖、flags、结局解析。
  * 业务逻辑集中于此，禁止散落在 modes 内硬编码阈值。
  */
-
-const STORAGE_KEY = 'yiye_v2_chapter_log';
 
 const DEFAULT_STATS = {
   sincerityPast: 50,
@@ -18,11 +16,8 @@ let stats = { ...DEFAULT_STATS };
 /** @type {Record<string, boolean>} */
 let flags = {};
 
-/** @type {{ actId: string, title: string, timeline: string, ts: number }[]} */
-let chapterLog = [];
-
 /**
- * 新一局重置数值与 flags（章节日志保留）。
+ * 新一局重置数值与 flags。
  */
 export function resetRun() {
   stats = { ...DEFAULT_STATS };
@@ -60,50 +55,6 @@ export function applyEffect(effect) {
   if (effect.setFlags) {
     flags = { ...flags, ...effect.setFlags };
   }
-}
-
-/**
- * 记录已读章节（进入节点时调用一次）。
- * @param {object} node
- */
-export function pushChapter(node) {
-  if (!node || !node.id) {
-    return;
-  }
-  const entry = {
-    actId: node.id,
-    title: node.title || node.id,
-    timeline: node.timeline || 'now',
-    ts: Date.now(),
-  };
-  const last = chapterLog[chapterLog.length - 1];
-  if (last && last.actId === entry.actId) {
-    return;
-  }
-  chapterLog.push(entry);
-  try {
-    if (typeof wx !== 'undefined' && wx.setStorageSync) {
-      wx.setStorageSync(STORAGE_KEY, chapterLog);
-    }
-  } catch (e) {
-    /* 存储失败不阻断游戏 */
-  }
-}
-
-/**
- * 从本地读取章节日志。
- * @returns {typeof chapterLog}
- */
-export function loadChapterLog() {
-  try {
-    if (typeof wx !== 'undefined' && wx.getStorageSync) {
-      const raw = wx.getStorageSync(STORAGE_KEY);
-      chapterLog = Array.isArray(raw) ? raw : [];
-    }
-  } catch (e) {
-    chapterLog = [];
-  }
-  return chapterLog.slice();
 }
 
 /**

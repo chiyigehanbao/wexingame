@@ -8,6 +8,7 @@ import {
   measureWrappedLines,
   drawPaperPanel,
   drawWrappedText,
+  drawCenteredWrappedText,
   drawStickyChoice,
   roundRectPath,
 } from './paper';
@@ -282,8 +283,17 @@ export function drawCenteredBlock(ctx, spec) {
     ctx.textAlign = line.align || 'center';
     const x = line.align === 'left' ? LAYOUT.pad + 16 : SCREEN_WIDTH / 2;
     if (line.wrap) {
-      drawWrappedText(ctx, line.text, x - (line.align === 'center' ? line.wrap / 2 : 0), y, line.wrap, lineH, line.color, line.font);
-      y += (line.lines || 2) * lineH;
+      const endY = drawCenteredWrappedText(
+        ctx,
+        line.text,
+        SCREEN_WIDTH / 2,
+        y,
+        line.wrap,
+        lineH,
+        line.color,
+        line.font,
+      );
+      y = endY + lineH * 0.3;
     } else {
       ctx.fillText(line.text, x, y);
       y += line.h || lineH;

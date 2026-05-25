@@ -1,5 +1,5 @@
 /**
- * 《一夜剧本》v2 主入口：title / log / playing(mode) / ending。
+ * 《一夜剧本》v2 主入口：title → playing(mode) → ending。
  */
 import './render';
 import { START_ID, getNode } from './story';
@@ -8,7 +8,6 @@ import {
   drawTitleScreen,
   drawPlaying,
   drawEndingScreen,
-  drawChapterLogScreen,
   preloadNodeImages,
 } from './renderer';
 import { setHitRegions, bindInput } from './input';
@@ -20,8 +19,6 @@ import * as pressure from './modes/pressure';
 import {
   resetRun,
   applyEffect,
-  pushChapter,
-  loadChapterLog,
   resolveEnding,
 } from './gameState';
 import { triggerSceneEnter } from './layers/sceneLayout';
@@ -36,17 +33,11 @@ export default class Main {
   /** @type {object[]} */
   lastHitRegions = [];
 
-  titleHasLog = false;
-
   constructor() {
-    loadChapterLog();
     bindInput();
     this.loop();
   }
 
-  /**
-   * 返回标题（新一局重置数值）。
-   */
   goTitle() {
     resetRun();
     this.state = 'title';
@@ -54,9 +45,6 @@ export default class Main {
     this.syncInput();
   }
 
-  /**
-   * @param {string} nodeId
-   */
   goNode(nodeId) {
     if (nodeId === '__resolve_ending__') {
       nodeId = resolveEnding();
@@ -68,7 +56,6 @@ export default class Main {
     }
     this.currentNodeId = nodeId;
     triggerSceneEnter(nodeId);
-    pushChapter(node);
     if (node.isEnding) {
       this.state = 'ending';
     } else {
@@ -78,9 +65,6 @@ export default class Main {
     this.syncInput();
   }
 
-  /**
-   * @param {number} choiceIndex
-   */
   onPlayingTap(idx, node) {
     const region = this.lastHitRegions.find((r) => r.index === idx);
     if (node.mode === 'qte') {
@@ -117,30 +101,12 @@ export default class Main {
     this.goNode(nextId);
   }
 
-  goLog() {
-    this.state = 'log';
-    this.syncInput();
-  }
-
   syncInput() {
     if (this.state === 'title') {
-      const { regions, hasLog } = drawTitleScreen();
-      this.titleHasLog = hasLog;
-      setHitRegions(regions, (idx) => {
-        if (idx === 1 && hasLog) {
-          this.goLog();
-          return;
-        }
+      const { regions } = drawTitleScreen();
+      setHitRegions(regions, () => {
         resetRun();
         this.goNode(START_ID);
-      });
-      return;
-    }
-    if (this.state === 'log') {
-      const btn = drawChapterLogScreen();
-      setHitRegions([btn], () => {
-        this.state = 'title';
-        this.syncInput();
       });
       return;
     }

@@ -131,3 +131,34 @@ export function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, color, fo
   }
   return drawY;
 }
+
+/**
+ * 居中换行绘制（用于标题页等全屏居中文案）。
+ * @returns {number} 最后一行 baseline Y
+ */
+export function drawCenteredWrappedText(ctx, text, centerX, y, maxWidth, lineHeight, color, font) {
+  ctx.font = font || FONT.body;
+  ctx.fillStyle = color || COLORS.textMuted;
+  const chars = (text || '').split('');
+  let line = '';
+  const lines = [];
+  for (let i = 0; i < chars.length; i += 1) {
+    const test = line + chars[i];
+    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+      lines.push(line);
+      line = chars[i];
+    } else {
+      line = test;
+    }
+  }
+  if (line) {
+    lines.push(line);
+  }
+  let drawY = y;
+  lines.forEach((ln) => {
+    const w = ctx.measureText(ln).width;
+    ctx.fillText(ln, centerX - w / 2, drawY);
+    drawY += lineHeight;
+  });
+  return drawY;
+}
