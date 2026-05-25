@@ -12,6 +12,11 @@ import {
   preloadNodeImages,
 } from './renderer';
 import { setHitRegions, bindInput } from './input';
+import * as qteMode from './modes/qte';
+import * as mailMode from './modes/mail';
+import * as archiveMode from './modes/archive';
+import * as editMode from './modes/edit';
+import * as pressure from './modes/pressure';
 import {
   resetRun,
   applyEffect,
@@ -26,6 +31,9 @@ export default class Main {
   currentNodeId = START_ID;
 
   aniId = 0;
+
+  /** @type {object[]} */
+  lastHitRegions = [];
 
   titleHasLog = false;
 
@@ -71,6 +79,25 @@ export default class Main {
   /**
    * @param {number} choiceIndex
    */
+  onPlayingTap(idx, node) {
+    const region = this.lastHitRegions.find((r) => r.index === idx);
+    if (node.mode === 'qte' && qteMode.handleTap()) {
+      return;
+    }
+    if (node.mode === 'mail' && mailMode.handleRegionTap(region)) {
+      return;
+    }
+    if (node.mode === 'archive' && archiveMode.handleRegionTap(region)) {
+      return;
+    }
+    if (node.mode === 'edit' && editMode.handleRegionTap(region)) {
+      return;
+    }
+    if (node.mode === 'narrative' || !node.mode) {
+      this.onChoice(idx);
+    }
+  }
+
   onChoice(choiceIndex) {
     const node = getNode(this.currentNodeId);
     if (!node?.choices?.[choiceIndex]) {
@@ -114,8 +141,15 @@ export default class Main {
     }
     if (this.state === 'playing') {
       const node = getNode(this.currentNodeId);
-      const regions = drawPlaying(node);
-      setHitRegions(regions, (idx) => this.onChoice(idx));
+      const hooks = {
+        goNext: (id) => {
+          pressure.stopCountdown();
+          this.goNode(id);
+        },
+      };
+      const regions = drawPlaying(node, hooks);
+      this.lastHitRegions = regions;
+      setHitRegions(regions, (idx) => this.onPlayingTap(idx, node));
       return;
     }
     if (this.state === 'ending') {

@@ -16,7 +16,7 @@ import {
  * @param {object} node
  * @returns {{ x: number, y: number, w: number, h: number, index: number }[]}
  */
-export function render(ctx, node) {
+export function render(ctx, node, _hooks) {
   const layout = computeNarrativeLayout(ctx, node, SCREEN_WIDTH, SCREEN_HEIGHT);
   const { blockTop, panelTop, panelH, contentW, innerW, pad, buttons } = layout;
   const textX = pad + 16;

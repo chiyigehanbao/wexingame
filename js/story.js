@@ -110,24 +110,45 @@ const NODES = {
     timeline: 'now',
     chapter: '今夜 · 04:52',
     title: '慢热稿纸与快的客户',
-    mode: 'narrative',
+    mode: 'mail',
     background: '',
-    text:
-      '客户消息再次弹出：「明早九点前要成片，要爽点。」HR 日历提醒：十点末次答辩。' +
-      '你听见主机风扇像倒计时。窗外停车场出口灯逐排亮起，出租车汇入主干道。' +
-      '你终于给「我其实……」落下后半句——有些结局无法被加速，有些裁员名单无法被剪辑掉。',
-    choices: [
-      {
-        label: '回客户：先用 AI 折中版',
-        next: 'act6_past',
-        effect: { statDelta: { aiDepend: 10, stress: 12 }, setFlags: { dualVersion: true } },
-      },
-      {
-        label: '回客户：发慢热原稿',
-        next: 'act6_past',
-        effect: { statDelta: { sincerityNow: 10, stress: 8 } },
-      },
-    ],
+    text: '你终于给「我其实……」落下后半句。邮箱与 IM 同时亮起。',
+    modeParams: {
+      pressureSec: 45,
+      timeoutNext: 'act6_past',
+      threads: [
+        {
+          from: 'client',
+          subject: '明早九点前要成片',
+          body: '要爽点，要反转。别跟我谈慢热。',
+          replies: [
+            {
+              label: '回：先用 AI 折中版',
+              next: 'act6_past',
+              effect: { statDelta: { aiDepend: 10, stress: 12 }, setFlags: { dualVersion: true } },
+            },
+            {
+              label: '回：发慢热原稿',
+              next: 'act6_past',
+              effect: { statDelta: { sincerityNow: 10, stress: 8 } },
+            },
+          ],
+        },
+        {
+          from: 'hr',
+          subject: '末次答辩材料',
+          body: '请于 10:00 前提交成片链接与说明。',
+          replies: [
+            {
+              label: '回：收到，仍在渲染',
+              next: 'act6_past',
+              effect: { statDelta: { stress: 5 } },
+            },
+          ],
+        },
+      ],
+    },
+    choices: [],
   },
   act6_past: {
     id: 'act6_past',
@@ -158,68 +179,58 @@ const NODES = {
     timeline: 'now',
     chapter: '今夜 · 05:56',
     title: '渲染队列里的 HR 抄送',
-    mode: 'narrative',
+    mode: 'qte',
     background: '',
     text:
-      '渲染进度停在 99%。HR 邮件抄送栏亮起：「末次答辩材料请于十点前提交。」' +
-      '楼道感应灯一盏盏亮——保洁推车经过，水桶撞地，一声轻响。' +
+      '渲染进度停在 99%。HR 邮件抄送栏亮起。楼道感应灯一盏盏亮——保洁推车经过，水桶撞地。' +
       '发布键在指尖下，像一枚硬币：一面是工牌，一面是三年前那个还没被改写的你。',
-    choices: [
-      {
-        label: '全片交 AI 终剪，换睡眠',
-        next: 'act8_past',
-        effect: { statDelta: { aiDepend: 25 }, setFlags: { fullAiSubmit: true } },
-      },
-      { label: '自己守到渲染完', next: 'act8_past', effect: { statDelta: { sincerityNow: 8, stress: 10 } } },
-    ],
+    modeParams: {
+      pressureSec: 50,
+      progressLabel: '渲染 99%',
+      beats: [
+        { at: 0.52, windowMs: 900, label: '点住节拍 · 冲过 99%' },
+        { at: 0.78, windowMs: 750, label: '再打一次节拍' },
+      ],
+      successNext: 'act8_past',
+      failNext: 'act8_past',
+    },
+    choices: [],
   },
   act8_past: {
     id: 'act8_past',
     timeline: 'past',
     chapter: '三年前 · 凌晨',
     title: '硬盘里未发送的那版',
-    mode: 'narrative',
+    mode: 'archive',
     background: '',
-    text:
-      '你打开「未发送」文件夹。粗剪里留着三年前的呼吸声，和那句没说完的「我其实……」。' +
-      '鼠标悬在删除键上，像悬在后来的裁员通知上。' +
-      '你忽然明白：不是每一个版本都值得被发布，但每一句话都可能决定你还会不会认出自己。',
-    choices: [
-      {
-        label: '保留真话轨，不删那一句',
-        next: 'act9_now',
-        effect: { statDelta: { sincerityPast: 15 }, setFlags: { secret1Eligible: true } },
-      },
-      {
-        label: '删掉卡顿，让成片「干净」',
-        next: 'act9_now',
-        effect: { statDelta: { sincerityPast: -12, aiDepend: 8 } },
-      },
-    ],
+    text: '你打开「未发送」文件夹。勾选要带进今夜的素材。',
+    modeParams: {
+      tiles: [
+        { id: 'truth_line', label: '「我其实……」原声', keep: true },
+        { id: 'broll_city', label: '窗外车流空镜', keep: false },
+        { id: 'ai_tag', label: '协助剪辑标注', keep: false },
+      ],
+      successNext: 'act9_now',
+    },
+    choices: [],
   },
   act9_now: {
     id: 'act9_now',
     timeline: 'now',
     chapter: '今夜 · 06:08',
     title: '双时间线叠在同一预览窗',
-    mode: 'narrative',
+    mode: 'edit',
     background: '',
-    text:
-      '预览窗里，现在的你和三年前的你同框。AI 口号在上轨，真话在下轨，像两条平行的时间线终于重叠。' +
-      '玻璃幕墙外泛起灰白，雨停了，霓虹却挂在窗上。' +
-      '合规弹窗问：是否使用生成式工具？你想起裁员名单、答辩时钟，和 U 盘里那个还没被上传的结尾。',
-    choices: [
-      {
-        label: '追加 AI 剪辑版保底',
-        next: 'act10_gate',
-        effect: { setFlags: { dualVersion: true }, statDelta: { aiDepend: 15 } },
-      },
-      {
-        label: '只留带「我其实……」的底片',
-        next: 'act10_gate',
-        effect: { statDelta: { sincerityNow: 18, aiDepend: -10 } },
-      },
-    ],
+    text: '预览窗里，上轨与下轨重叠。删留每一句，决定今夜发布什么声音。',
+    modeParams: {
+      clips: [
+        { id: 'c1', text: '我从不后悔。', ai: true },
+        { id: 'c2', text: '我其实……想对三年前的自己说实话。', ai: false },
+        { id: 'c3', text: '感谢团队，感谢这座城市。', ai: true },
+      ],
+      successNext: 'act10_gate',
+    },
+    choices: [],
   },
   act10_gate: {
     id: 'act10_gate',

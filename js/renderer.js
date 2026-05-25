@@ -163,7 +163,11 @@ export function drawChapterLogScreen() {
  * 绘制当前剧情节点（mode 分发）。
  * @returns {object[]} 命中区域
  */
-export function drawPlaying(node) {
+/**
+ * @param {object} node
+ * @param {{ goNext: (id: string) => void }} [hooks]
+ */
+export function drawPlaying(node, hooks) {
   drawBgLayer(node);
   const stats = getStats();
   drawTopChrome(ctx, {
@@ -173,7 +177,7 @@ export function drawPlaying(node) {
   });
   drawProgressDots(getActProgress(node.id));
   const handler = getModeHandler(node.mode);
-  return handler.render(ctx, node);
+  return handler.render(ctx, node, hooks);
 }
 
 export function drawEndingScreen(node) {
