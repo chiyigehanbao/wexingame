@@ -65,8 +65,10 @@ export function getPlayArea() {
 }
 
 function measureHeaderH(ctx, node, w) {
-  const titleLines = measureWrappedLines(ctx, node.title || '', w - 8, FONT.sceneTitle);
-  return 36 + titleLines * 24;
+  const innerW = w - 16;
+  const chapLines = measureWrappedLines(ctx, node.chapter || '', innerW, FONT.chapter);
+  const titleLines = measureWrappedLines(ctx, node.title || '', innerW, FONT.sceneTitle);
+  return 14 + chapLines * 20 + 14 + titleLines * 24;
 }
 
 /**
@@ -77,42 +79,31 @@ function measureHeaderH(ctx, node, w) {
  * @param {number} w
  */
 function drawSceneHeader(ctx, node, x, y, w) {
+  const centerX = x + w / 2;
+  const innerW = w - 16;
   const chapterColor = node.timeline === 'past' ? COLORS.amber : COLORS.cyan;
-  ctx.font = FONT.chapter;
-  ctx.fillStyle = chapterColor;
-  ctx.textAlign = 'center';
-  const chap = node.chapter || '';
-  const cw = ctx.measureText(chap).width;
-  let cx = x + w / 2 - cw / 2;
-  const pad = 24;
-  if (cx < pad) {
-    cx = pad;
-  }
-  ctx.textAlign = 'left';
-  ctx.fillText(chap, cx, y + 14);
 
-  let ty = y + 32;
-  ctx.font = FONT.sceneTitle;
-  ctx.fillStyle = COLORS.text;
-  const title = node.title || '';
-  const lineW = w - 8;
-  if (title) {
-    const chars = title.split('');
-    let line = '';
-    for (let i = 0; i < chars.length; i += 1) {
-      const test = line + chars[i];
-      if (ctx.measureText(test).width > lineW && line.length > 0) {
-        ctx.fillText(line, x + w / 2, ty);
-        line = chars[i];
-        ty += 24;
-      } else {
-        line = test;
-      }
-    }
-    if (line) {
-      ctx.fillText(line, x + w / 2, ty);
-    }
-  }
+  const chapEnd = drawCenteredWrappedText(
+    ctx,
+    node.chapter || '',
+    centerX,
+    y + 14,
+    innerW,
+    20,
+    chapterColor,
+    FONT.chapter,
+  );
+
+  drawCenteredWrappedText(
+    ctx,
+    node.title || '',
+    centerX,
+    chapEnd + 14,
+    innerW,
+    24,
+    COLORS.text,
+    FONT.sceneTitle,
+  );
   ctx.textAlign = 'left';
 }
 
