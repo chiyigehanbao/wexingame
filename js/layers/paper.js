@@ -21,41 +21,65 @@ export function roundRectPath(ctx, x, y, w, h, r) {
 }
 
 /**
- * 纸纹主面板。
+ * 纸纹主面板，可选纹理与霓虹边。
+ * @param {boolean} [glow]
  */
-export function drawPaperPanel(ctx, x, y, w, h) {
+export function drawPaperPanel(ctx, x, y, w, h, glow = false) {
+  if (glow) {
+    ctx.shadowColor = 'rgba(0, 245, 212, 0.2)';
+    ctx.shadowBlur = 16;
+  }
   ctx.fillStyle = COLORS.paper;
-  roundRectPath(ctx, x, y, w, h, 10);
+  roundRectPath(ctx, x, y, w, h, 12);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(42, 37, 32, 0.25)';
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(42, 37, 32, 0.2)';
   ctx.lineWidth = 1;
-  roundRectPath(ctx, x, y, w, h, 10);
+  roundRectPath(ctx, x, y, w, h, 12);
   ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(42, 37, 32, 0.06)';
+  for (let i = y + 8; i < y + h - 4; i += 7) {
+    ctx.beginPath();
+    ctx.moveTo(x + 10, i);
+    ctx.lineTo(x + w - 10, i);
+    ctx.stroke();
+  }
 }
 
 /**
- * 便签式选项按钮。
- * @param {boolean} accent 是否主选项
+ * 便签式选项（带微动效）。
  */
-export function drawStickyChoice(ctx, rect, label, accent) {
-  const tilt = accent ? 0 : 0.008;
+export function drawStickyChoice(ctx, rect, label, accent, tick = 0, extraPulse = 0) {
+  const pulse = extraPulse + (accent ? 0.04 * Math.sin(tick * 0.007) : 0);
+  const tilt = accent ? pulse * 0.3 : 0.006;
+
   ctx.save();
   ctx.translate(rect.x + rect.w / 2, rect.y + rect.h / 2);
   ctx.rotate(tilt);
+  const scale = 1 + (accent ? pulse : 0);
+  ctx.scale(scale, scale);
   ctx.translate(-rect.w / 2, -rect.h / 2);
 
   ctx.fillStyle = accent ? '#fff9e8' : COLORS.paper;
-  roundRectPath(ctx, 0, 0, rect.w, rect.h, 6);
+  roundRectPath(ctx, 0, 0, rect.w, rect.h, 8);
   ctx.fill();
+
+  if (accent) {
+    ctx.shadowColor = COLORS.cyan;
+    ctx.shadowBlur = 8 + 6 * Math.sin(tick * 0.01);
+  }
   ctx.strokeStyle = accent ? COLORS.cyan : COLORS.paperMuted;
   ctx.lineWidth = accent ? 2 : 1;
-  roundRectPath(ctx, 0, 0, rect.w, rect.h, 6);
+  roundRectPath(ctx, 0, 0, rect.w, rect.h, 8);
   ctx.stroke();
+  ctx.shadowBlur = 0;
 
   ctx.font = FONT.btn;
   ctx.fillStyle = COLORS.paperInk;
   ctx.textAlign = 'center';
-  ctx.fillText(label, rect.w / 2, rect.h / 2 + 5);
+  ctx.fillText(label, rect.w / 2, rect.h / 2 + 6);
   ctx.textAlign = 'left';
   ctx.restore();
 }
@@ -106,37 +130,4 @@ export function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, color, fo
     ctx.fillText(line, x, drawY);
   }
   return drawY;
-}
-
-/**
- * 叙事场景布局（便签按钮列表）。
- * @param {CanvasRenderingContext2D} ctx
- * @param {object} node
- * @param {number} screenW
- * @param {number} screenH
- */
-export function computeNarrativeLayout(ctx, node, screenW, screenH) {
-  const pad = LAYOUT.pad;
-  const contentW = screenW - pad * 2;
-  const innerW = contentW - LAYOUT.panelPad * 2;
-  const labels = (node.choices || []).map((c) => c.label);
-
-  const chapterH = 20;
-  const titleLines = measureWrappedLines(ctx, node.title || '', innerW, FONT.sceneTitle);
-  const bodyLines = measureWrappedLines(ctx, node.text || '', innerW, FONT.body);
-  const panelH = bodyLines * 21 + LAYOUT.panelPad * 2 + 8;
-  const headerH = chapterH + 8 + titleLines * 22 + 12;
-  const btnBlockH = labels.length * LAYOUT.btnH + Math.max(0, labels.length - 1) * LAYOUT.btnGap;
-  const totalH = headerH + panelH + 14 + btnBlockH;
-  const blockTop = Math.max(88, (screenH - totalH) / 2);
-  const panelTop = blockTop + headerH;
-  let btnY = panelTop + panelH + 14;
-
-  const buttons = labels.map((label, index) => {
-    const rect = { x: pad, y: btnY, w: contentW, h: LAYOUT.btnH, index, label };
-    btnY += LAYOUT.btnH + LAYOUT.btnGap;
-    return rect;
-  });
-
-  return { blockTop, panelTop, panelH, contentW, innerW, pad, buttons };
 }

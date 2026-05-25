@@ -24,6 +24,7 @@ import {
   loadChapterLog,
   resolveEnding,
 } from './gameState';
+import { triggerSceneEnter } from './layers/sceneLayout';
 
 export default class Main {
   state = 'title';
@@ -66,6 +67,7 @@ export default class Main {
       return;
     }
     this.currentNodeId = nodeId;
+    triggerSceneEnter(nodeId);
     pushChapter(node);
     if (node.isEnding) {
       this.state = 'ending';
@@ -81,7 +83,10 @@ export default class Main {
    */
   onPlayingTap(idx, node) {
     const region = this.lastHitRegions.find((r) => r.index === idx);
-    if (node.mode === 'qte' && qteMode.handleTap()) {
+    if (node.mode === 'qte') {
+      if (region?._qteBeat) {
+        qteMode.handleTap();
+      }
       return;
     }
     if (node.mode === 'mail' && mailMode.handleRegionTap(region)) {

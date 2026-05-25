@@ -24,18 +24,19 @@ export const COLORS = {
 };
 
 export const FONT = {
-  title: 'bold 28px "Songti SC", STSong, serif',
-  sceneTitle: 'bold 16px "Songti SC", STSong, serif',
-  chapter: 'bold 11px sans-serif',
-  body: '15px sans-serif',
-  bodySmall: '13px sans-serif',
-  btn: '14px sans-serif',
+  title: 'bold 32px "Songti SC", STSong, serif',
+  sceneTitle: 'bold 19px "Songti SC", STSong, serif',
+  chapter: 'bold 12px sans-serif',
+  body: '17px sans-serif',
+  bodySmall: '14px sans-serif',
+  btn: '16px sans-serif',
   mono: '12px monospace',
 };
 
 export const LAYOUT = {
-  pad: 18,
-  btnH: 48,
-  btnGap: 10,
-  panelPad: 16,
+  pad: 20,
+  btnH: 52,
+  btnGap: 12,
+  panelPad: 20,
+  bodyLine: 26,
 };

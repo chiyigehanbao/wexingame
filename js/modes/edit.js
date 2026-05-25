@@ -1,21 +1,14 @@
 /**
- * 剪辑台：句块删留（点击切换删除线）。
+ * 剪辑台 mode：句块作为便签选项（居中栈）。
  */
-import { SCREEN_WIDTH } from '../render';
-import { COLORS, FONT, LAYOUT } from '../theme';
-import { CHROME_HEIGHT } from '../layers/chrome';
-import { drawPaperPanel, drawStickyChoice } from '../layers/paper';
+import { drawCenteredScene } from '../layers/sceneLayout';
 import { applyEffect } from '../gameState';
+import { getAnimTick } from '../animClock';
 
 let nodeRef = null;
 let dropped = {};
 let goNextCb = null;
 
-/**
- * @param {CanvasRenderingContext2D} ctx
- * @param {object} node
- * @param {{ goNext: (id: string) => void }} hooks
- */
 export function render(ctx, node, hooks) {
   if (nodeRef?.id !== node.id) {
     nodeRef = node;
@@ -23,38 +16,26 @@ export function render(ctx, node, hooks) {
     dropped = {};
   }
 
-  const pad = LAYOUT.pad;
-  let y = CHROME_HEIGHT + 48;
-  ctx.fillStyle = COLORS.text;
-  ctx.font = FONT.sceneTitle;
-  ctx.fillText(node.title || '', pad, y);
-  y += 30;
-
   const clips = node.modeParams?.clips || [];
-  const regions = [];
-  clips.forEach((clip, i) => {
-    const isDrop = dropped[clip.id];
-    const rect = { x: pad, y, w: SCREEN_WIDTH - pad * 2, h: 40, index: i, _clipId: clip.id };
-    drawPaperPanel(ctx, pad, y, rect.w, rect.h);
-    ctx.font = FONT.bodySmall;
-    ctx.fillStyle = isDrop ? COLORS.paperMuted : COLORS.paperInk;
-    if (isDrop) {
-      ctx.fillRect(pad + 12, y + 20, rect.w - 24, 1);
-    }
-    ctx.fillText(`${clip.ai ? '[AI] ' : ''}${clip.text}`, pad + 16, y + 26);
-    regions.push(rect);
-    y += 48;
+  const labels = clips.map((c) => {
+    const mark = dropped[c.id] ? '✕ ' : '';
+    const tag = c.ai ? '[AI] ' : '';
+    return `${mark}${tag}${c.text}`;
   });
+  labels.push('继续');
+  const doneIdx = clips.length;
 
-  const btn = { x: pad, y: y + 8, w: SCREEN_WIDTH - pad * 2, h: LAYOUT.btnH, index: 99, _done: true };
-  drawStickyChoice(ctx, btn, '继续', true);
-  regions.push(btn);
-  return regions;
+  return drawCenteredScene(ctx, node, {
+    paperText: node.text,
+    animTick: getAnimTick(),
+    choiceLabels: labels,
+    choiceMeta: [
+      ...clips.map((c, i) => ({ _clipId: c.id, index: i })),
+      { _done: true, index: doneIdx },
+    ],
+  });
 }
 
-/**
- * @param {object} region
- */
 export function handleRegionTap(region) {
   if (!nodeRef || !region) {
     return false;
