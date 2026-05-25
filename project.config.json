@@ -50,7 +50,13 @@
   },
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "folder", "value": ".cursor" },
+      { "type": "folder", "value": "docs" },
+      { "type": "suffix", "value": ".md" },
+      { "type": "suffix", "value": ".sh" },
+      { "type": "suffix", "value": ".dot" }
+    ],
     "include": []
   },
   "isGameTourist": false,

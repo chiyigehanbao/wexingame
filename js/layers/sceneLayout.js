@@ -2,7 +2,8 @@
  * 游玩区居中布局：章节/标题/主纸纹框/扩展块/选项同一垂直栈，整体相对屏幕居中。
  */
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../render';
-import { HUD_HEIGHT } from './chrome';
+import { getContentTop } from './chrome';
+import { getBandHeight } from '../modes/pressure';
 import { COLORS, FONT, LAYOUT } from '../theme';
 import {
   measureWrappedLines,
@@ -12,8 +13,6 @@ import {
   drawStickyChoice,
   roundRectPath,
 } from './paper';
-
-export { HUD_HEIGHT };
 
 const PLAY_BOTTOM = 28;
 const GAP = 12;
@@ -53,7 +52,7 @@ function getEnterOffsetY() {
  * 可绘制区域（居中锚点在此区域的垂直中线）。
  */
 export function getPlayArea() {
-  const top = HUD_HEIGHT + 8;
+  const top = getContentTop(getBandHeight()) + 6;
   const bottom = SCREEN_HEIGHT - PLAY_BOTTOM;
   return {
     top,
@@ -82,7 +81,15 @@ function drawSceneHeader(ctx, node, x, y, w) {
   ctx.font = FONT.chapter;
   ctx.fillStyle = chapterColor;
   ctx.textAlign = 'center';
-  ctx.fillText(node.chapter || '', x + w / 2, y + 14);
+  const chap = node.chapter || '';
+  const cw = ctx.measureText(chap).width;
+  let cx = x + w / 2 - cw / 2;
+  const pad = 24;
+  if (cx < pad) {
+    cx = pad;
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText(chap, cx, y + 14);
 
   let ty = y + 32;
   ctx.font = FONT.sceneTitle;

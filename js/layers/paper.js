@@ -145,12 +145,14 @@ export function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, color, fo
 export function drawCenteredWrappedText(ctx, text, centerX, y, maxWidth, lineHeight, color, font) {
   ctx.font = font || FONT.body;
   ctx.fillStyle = color || COLORS.textMuted;
+  const sidePad = 32;
+  const safeMax = Math.min(maxWidth, centerX * 2 - sidePad * 2);
   const chars = (text || '').split('');
   let line = '';
   const lines = [];
   for (let i = 0; i < chars.length; i += 1) {
     const test = line + chars[i];
-    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+    if (ctx.measureText(test).width > safeMax && line.length > 0) {
       lines.push(line);
       line = chars[i];
     } else {
@@ -161,9 +163,17 @@ export function drawCenteredWrappedText(ctx, text, centerX, y, maxWidth, lineHei
     lines.push(line);
   }
   let drawY = y;
+  ctx.textAlign = 'left';
   lines.forEach((ln) => {
     const w = ctx.measureText(ln).width;
-    ctx.fillText(ln, centerX - w / 2, drawY);
+    let x = centerX - w / 2;
+    if (x < sidePad) {
+      x = sidePad;
+    }
+    if (x + w > centerX * 2 - sidePad) {
+      x = centerX * 2 - sidePad - w;
+    }
+    ctx.fillText(ln, x, drawY);
     drawY += lineHeight;
   });
   return drawY;

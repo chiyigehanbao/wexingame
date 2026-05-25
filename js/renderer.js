@@ -4,7 +4,7 @@
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './render';
 import { COLORS, FONT, LAYOUT } from './theme';
 import { drawBackdrop, titlePulse } from './atmosphere';
-import { drawTopChrome, drawHudProgress } from './layers/chrome';
+import { drawTopChrome } from './layers/chrome';
 import {
   drawCenteredScene,
   drawCenteredBlock,
@@ -26,7 +26,8 @@ const ctx = canvas.getContext('2d');
 
 const TITLE = '一夜剧本';
 const SUBTITLE = '都市科幻 · 互动微剧';
-const TAGLINE = '每一夜，都是一次不可撤回的发布';
+const TAGLINE_A = '每一夜，都是一次';
+const TAGLINE_B = '不可撤回的发布';
 
 const imageCache = {};
 
@@ -66,13 +67,8 @@ export function drawTitleScreen() {
     lines: [
       { text: TITLE, font: FONT.title, color: COLORS.text, h: 42 },
       { text: SUBTITLE, font: '17px sans-serif', color: COLORS.cyan, h: 30 },
-      {
-        text: TAGLINE,
-        font: FONT.bodySmall,
-        color: COLORS.textMuted,
-        wrap: SCREEN_WIDTH - 56,
-        h: 52,
-      },
+      { text: TAGLINE_A, font: FONT.body, color: COLORS.textMuted, h: 26 },
+      { text: TAGLINE_B, font: FONT.body, color: COLORS.textMuted, h: 26 },
       {
         text: '约 15 分钟 · 蒙太奇 · 多结局',
         font: FONT.bodySmall,
@@ -98,7 +94,6 @@ export function drawPlaying(node, hooks) {
     timeline: node.timeline,
     actId: node.id,
   });
-  drawHudProgress(ctx, getActProgress(node.id));
   const handler = getModeHandler(node.mode);
   return handler.render(ctx, node, hooks);
 }
@@ -107,7 +102,6 @@ export function drawEndingScreen(node) {
   drawBgLayer(node);
   const stats = getStats();
   drawTopChrome(ctx, { stress: stats.stress, timeline: 'now', actId: 'ending' });
-  drawHudProgress(ctx, 10);
   triggerSceneEnter(node.id);
 
   const summary = `诚意 ${stats.sincerityNow} · 过去 ${stats.sincerityPast} · AI ${stats.aiDepend}`;
