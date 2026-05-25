@@ -1,16 +1,24 @@
 /**
- * 《一夜剧本》主入口：状态机 title → playing → ending。
+ * 《一夜剧本》v2 主入口：title / log / playing(mode) / ending。
  */
 import './render';
 import { START_ID, getNode } from './story';
 import {
+  setAnimTick,
   drawTitleScreen,
-  drawScene,
+  drawPlaying,
   drawEndingScreen,
+  drawChapterLogScreen,
   preloadNodeImages,
-  getChoiceButtonRects,
 } from './renderer';
 import { setHitRegions, bindInput } from './input';
+import {
+  resetRun,
+  applyEffect,
+  pushChapter,
+  loadChapterLog,
+  resolveEnding,
+} from './gameState';
 
 export default class Main {
   state = 'title';
@@ -19,31 +27,38 @@ export default class Main {
 
   aniId = 0;
 
+  titleHasLog = false;
+
   constructor() {
+    loadChapterLog();
     bindInput();
     this.loop();
   }
 
   /**
-   * 进入标题页。
+   * 返回标题（新一局重置数值）。
    */
   goTitle() {
+    resetRun();
     this.state = 'title';
     this.currentNodeId = START_ID;
     this.syncInput();
   }
 
   /**
-   * 从节点 id 开始剧情。
    * @param {string} nodeId
    */
   goNode(nodeId) {
+    if (nodeId === '__resolve_ending__') {
+      nodeId = resolveEnding();
+    }
     const node = getNode(nodeId);
     if (!node) {
       this.goTitle();
       return;
     }
     this.currentNodeId = nodeId;
+    pushChapter(node);
     if (node.isEnding) {
       this.state = 'ending';
     } else {
@@ -54,33 +69,53 @@ export default class Main {
   }
 
   /**
-   * 处理选项：跳转 next 或结局。
    * @param {number} choiceIndex
    */
   onChoice(choiceIndex) {
     const node = getNode(this.currentNodeId);
-    if (!node || !node.choices || !node.choices[choiceIndex]) {
+    if (!node?.choices?.[choiceIndex]) {
       return;
     }
-    const nextId = node.choices[choiceIndex].next;
+    const choice = node.choices[choiceIndex];
+    applyEffect(choice.effect);
+    let nextId = choice.next;
+    if (nextId === '__resolve_ending__') {
+      nextId = resolveEnding();
+    }
     this.goNode(nextId);
   }
 
-  /**
-   * 根据 state 绘制并更新命中区域。
-   */
+  goLog() {
+    this.state = 'log';
+    this.syncInput();
+  }
+
   syncInput() {
     if (this.state === 'title') {
-      const btn = drawTitleScreen();
-      setHitRegions([btn], () => this.goNode(START_ID));
+      const { regions, hasLog } = drawTitleScreen();
+      this.titleHasLog = hasLog;
+      setHitRegions(regions, (idx) => {
+        if (idx === 1 && hasLog) {
+          this.goLog();
+          return;
+        }
+        resetRun();
+        this.goNode(START_ID);
+      });
+      return;
+    }
+    if (this.state === 'log') {
+      const btn = drawChapterLogScreen();
+      setHitRegions([btn], () => {
+        this.state = 'title';
+        this.syncInput();
+      });
       return;
     }
     if (this.state === 'playing') {
       const node = getNode(this.currentNodeId);
-      drawScene(node);
-      const labels = (node.choices || []).map((c) => c.label);
-      const rects = getChoiceButtonRects(labels);
-      setHitRegions(rects, (idx) => this.onChoice(idx));
+      const regions = drawPlaying(node);
+      setHitRegions(regions, (idx) => this.onChoice(idx));
       return;
     }
     if (this.state === 'ending') {
@@ -90,10 +125,8 @@ export default class Main {
     }
   }
 
-  /**
-   * 每帧重绘（剧情无物理，全量重绘即可）。
-   */
   loop() {
+    setAnimTick(Date.now());
     this.syncInput();
     this.aniId = requestAnimationFrame(() => this.loop());
   }
