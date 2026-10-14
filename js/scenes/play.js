@@ -27,8 +27,8 @@ import {
   roundRect, drawSeal, Button, ButtonGroup,
 } from '../ui/widgets.js';
 
-const TEXT_FONT = font(17);
-const TEXT_LINE = 26;
+const TEXT_FONT = font(18);
+const TEXT_LINE = 30;
 const TEXT_MAX_LINES = 5;
 const CHARS_PER_SEC = 36;
 const FLIP_DUR = 0.42;
@@ -65,7 +65,7 @@ function layout() {
   L.iconTop = SAFE_TOP + 8;
   L.reignY = L.iconTop + ICON + 48;
   L.textW = W - 64;
-  const contentTop = L.reignY + 26;
+  const contentTop = L.reignY + 48;
   const contentBottom = H - SAFE_BOTTOM - 58;
   const textSlot = TEXT_MAX_LINES * TEXT_LINE;
   const gap = 22;
@@ -433,25 +433,27 @@ function drawReign(ctx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(`第 ${run.reign} 任县令 · 在任第 ${Math.round(shownDay)} 天`, W / 2, L.reignY);
-  ctx.strokeStyle = COLORS.faint;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.2, L.reignY + 12);
-  ctx.lineTo(W * 0.8, L.reignY + 12);
-  ctx.stroke();
+  ctx.fillStyle = COLORS.ink;
+  ctx.font = font(13);
+  ctx.fillText('见底或满溢就下台 · 在任越久越好', W / 2, L.reignY + 20);
 }
 
 function drawText(ctx) {
   if (textAlpha < 0.02) {
     return;
   }
-  ctx.globalAlpha = textAlpha;
-  ctx.fillStyle = COLORS.ink;
-  ctx.font = TEXT_FONT;
   const h = lines.length * TEXT_LINE;
   const y = L.textBottom - h;
+  const padY = 12;
+  ctx.save();
+  ctx.globalAlpha = textAlpha;
+  ctx.fillStyle = 'rgba(255, 251, 244, 0.96)';
+  roundRect(ctx, 20, y - padY, W - 40, h + padY * 2, 10);
+  ctx.fill();
+  ctx.fillStyle = '#1a1614';
+  ctx.font = TEXT_FONT;
   drawLines(ctx, lines, W / 2, y, TEXT_LINE, { visible: Math.floor(reveal) });
-  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 function cardFrame(ctx, w, h) {

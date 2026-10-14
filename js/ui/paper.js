@@ -111,12 +111,12 @@ export function deskBackground(deskTop) {
     paintPaper(g, W, H, rnd);
 
     g.save();
-    g.globalAlpha = 0.045;
+    g.globalAlpha = 0.03;
     g.fillStyle = COLORS.ink;
-    g.font = `bold ${Math.round(W * 0.9)}px serif`;
+    g.font = `bold ${Math.round(W * 0.72)}px serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText('衙', W / 2, H * 0.55);
+    g.fillText('衙', W / 2, H * 0.7);
     g.restore();
 
     const wood = g.createLinearGradient(0, deskTop, 0, H);

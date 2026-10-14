@@ -122,9 +122,11 @@ export default {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('一个穷县 · 一张公案 · 一堆麻烦事', W / 2, ty + 100);
+    ctx.fillStyle = COLORS.inkSoft;
+    ctx.fillText('四项见底或见顶就下台，在任越久越好', W / 2, ty + 124);
     const m = session.meta;
     if (m.runs > 0) {
-      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天`, W / 2, ty + 126);
+      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天`, W / 2, ty + 148);
     }
     ctx.globalAlpha = easeOutCubic(progress(t, 0.6, 0.6));
     buttons.draw(ctx);
