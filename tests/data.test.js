@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CARDS } from '../js/data/cards.js';
+import { echoOf } from '../js/data/echoes.js';
 import { CHARACTERS } from '../js/data/characters.js';
 import { ENDINGS, ENDING_ORDER } from '../js/data/endings.js';
 import { STAT_KEYS } from '../js/game/stats.js';
@@ -40,6 +41,16 @@ test('every card is well formed', () => {
       if (o.ending) {
         assert.ok(ENDINGS[o.ending], `${c.id}: unknown ending ${o.ending}`);
       }
+    });
+  });
+});
+
+test('every choice has a short aftermath line', () => {
+  CARDS.forEach((c) => {
+    ['left', 'right'].forEach((side) => {
+      const line = echoOf(c.id, side);
+      assert.ok(line, `${c.id}:${side} has no echo`);
+      assert.ok([...line].length <= 18, `${c.id}:${side} echo too long: ${line}`);
     });
   });
 });

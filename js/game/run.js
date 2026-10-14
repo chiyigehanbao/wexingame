@@ -8,6 +8,14 @@ import { countEndings } from './meta.js';
 
 export const FULL_TERM_DAYS = 365;
 export const REVIEW_EVERY = 30;
+const SEASON_DAYS = 40;
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+
+/** 每 40 天换一季，一局里能赶上两季。 */
+export function seasonOf(day) {
+  const index = Math.floor((Math.max(1, day) - 1) / SEASON_DAYS) % SEASONS.length;
+  return SEASONS[index];
+}
 const COOLDOWN = 12;
 
 export function createRun(meta) {
@@ -39,6 +47,9 @@ export function isEligible(card, run, meta) {
     return false;
   }
   if (req.minDay && run.day < req.minDay) {
+    return false;
+  }
+  if (req.season && seasonOf(run.day) !== req.season) {
     return false;
   }
   if (req.stat) {

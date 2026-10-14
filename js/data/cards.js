@@ -359,7 +359,7 @@ export const CARDS = [
     right: opt('给', { money: -2, heart: 4 }, { flags: { gou_friend: true } }),
   },
   {
-    id: 'gou_snow', who: 'gousheng',
+    id: 'gou_snow', who: 'gousheng', requires: { season: 'winter' },
     text: '大人，下雪了。城隍庙里的人冻得直哆嗦，我把破棉袄都借出去了。',
     left: opt('各安天命', { heart: -10, people: -4 }),
     right: opt('开粥棚', { money: -9, people: 10, heart: 4 }),
@@ -473,7 +473,7 @@ export const CARDS = [
 
   // —— 张老汉 / 水患 ——
   {
-    id: 'zhang_drought', who: 'laohan',
+    id: 'zhang_drought', who: 'laohan', requires: { season: 'summer' },
     text: '大人，三个月没下雨了，地裂得能塞进一只脚！',
     left: opt('让百姓自救', { people: -12, money: 2 }),
     right: opt('开仓放粮', { money: -13, people: 11 }),
@@ -515,13 +515,13 @@ export const CARDS = [
     right: opt('让他玩会儿', { people: 10, court: -10 }),
   },
   {
-    id: 'zhang_lantern', who: 'laohan',
+    id: 'zhang_lantern', who: 'laohan', requires: { season: 'autumn' },
     text: '大人，中秋了，县里办不办灯会？大伙都盼着呢。',
     left: opt('不办', { money: 5, people: -10 }),
     right: opt('办！', { money: -11, people: 11 }),
   },
   {
-    id: 'flood_1', who: 'laohan', once: true, requires: { minDay: 30 },
+    id: 'flood_1', who: 'laohan', once: true, requires: { minDay: 40, season: 'summer' },
     text: '大人！河水涨得厉害，堤坝怕是撑不住了！',
     left: opt('再看看', { people: -6 }, chain('flood_bad', 2)),
     right: opt('连夜加固', { money: -15, people: 8 }, chain('flood_good', 2)),
@@ -627,6 +627,56 @@ export const CARDS = [
     text: '听说你县百姓只认县令，不认朝廷？本府很是担心啊。',
     left: opt('百姓认朝廷', { people: -10, court: 8 }),
     right: opt('问心无愧', { court: -8, heart: 4 }),
+  },
+
+  // —— 四季 ——
+  {
+    id: 'spring_seed', who: 'laohan', requires: { season: 'spring' },
+    text: '大人，春耕了，种子不够。再不出苗，秋天就没得收。',
+    left: opt('各家自备', { people: -8, money: 2 }),
+    right: opt('官仓借种', { money: -10, people: 10, heart: 4 }),
+  },
+  {
+    id: 'spring_tomb', who: 'shiye', requires: { season: 'spring' },
+    text: '清明了，城隍庙要祭。往年都是衙门出钱，百姓跟着磕头。',
+    left: opt('今年省了', { money: 4, people: -8, heart: -4 }),
+    right: opt('照例办', { money: -8, people: 8 }),
+  },
+  {
+    id: 'summer_heat', who: 'langzhong', requires: { season: 'summer' },
+    text: '热得地皮烫脚！城里中暑的人，排到了药铺门口。',
+    left: opt('多喝井水', { people: -10, heart: -4 }),
+    right: opt('设凉茶棚', { money: -8, people: 10 }),
+  },
+  {
+    id: 'summer_river', who: 'butou', requires: { season: 'summer' },
+    text: '老爷，河边全是乘凉的，有人把税吏推下水了！',
+    left: opt('算他活该', { people: 6, court: -8 }),
+    right: opt('抓人', { people: -8, court: 6 }),
+  },
+  {
+    id: 'autumn_feast', who: 'wangpo', requires: { season: 'autumn' },
+    text: '收成下来了，村里办酒席。县太爷来不来？来了就得出份子。',
+    left: opt('不凑热闹', { people: -6, money: 2 }),
+    right: opt('去，出份子', { money: -8, people: 10 }),
+  },
+  {
+    id: 'autumn_tax', who: 'shiye', requires: { season: 'autumn' },
+    text: '秋粮入库。小的建议多报两成损耗，剩下的……您懂的。',
+    left: opt('如实入库', { heart: 8, money: -4, court: -3 }),
+    right: opt('损耗就损耗', { money: 12, heart: -10 }),
+  },
+  {
+    id: 'winter_coal', who: 'gousheng', requires: { season: 'winter' },
+    text: '大人，炭价涨了三倍。城隍庙里的人，烤的是书。',
+    left: opt('书也能烧', { heart: -10, people: -6 }),
+    right: opt('平价放炭', { money: -12, people: 10, heart: 4 }),
+  },
+  {
+    id: 'winter_bonus', who: 'shiye', requires: { season: 'winter' },
+    text: '年关了。衙役们眼巴巴看着您，往年这时候都有过年钱。',
+    left: opt('今年没有', { court: -4, people: -6, money: 4 }),
+    right: opt('发', { money: -10, court: 6, people: 4 }),
   },
 
   // —— 钦差（解锁 2 个结局后出现）——

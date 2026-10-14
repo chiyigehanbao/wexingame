@@ -16,8 +16,9 @@ import { CARDS } from '../data/cards.js';
 import { CHARACTERS } from '../data/characters.js';
 import { ENDINGS } from '../data/endings.js';
 import {
-  createRun, drawCard, choose, formatCardText,
+  createRun, drawCard, choose, formatCardText, seasonOf,
 } from '../game/run.js';
+import { echoOf } from '../data/echoes.js';
 import { STAT_KEYS, fxMagnitude } from '../game/stats.js';
 import { session, finishRun } from '../session.js';
 import { deskBackground } from '../ui/paper.js';
@@ -57,6 +58,18 @@ let shownDay = 1;
 const shown = {};
 const flashes = {};
 let brokenKey = null;
+let lastEcho = '';
+let pendingEcho = '';
+
+const SEASON_LABEL = {
+  spring: '春', summer: '夏', autumn: '秋', winter: '冬',
+};
+const SEASON_TINT = {
+  spring: 'rgba(70, 110, 60, 0.05)',
+  summer: 'rgba(170, 90, 40, 0.05)',
+  autumn: 'rgba(150, 80, 20, 0.07)',
+  winter: 'rgba(60, 80, 110, 0.07)',
+};
 const buttons = new ButtonGroup();
 let quitBtn = null;
 let quitArmedUntil = 0;
@@ -99,10 +112,13 @@ function setCard(c) {
   idleT = 0;
   cardX = 0;
   cardY = 0;
+  lastEcho = pendingEcho;
+  pendingEcho = '';
   play('paper', 0.7);
 }
 
 function commit(side) {
+  pendingEcho = echoOf(card.id, side);
   const res = choose(run, card, side, Math.random);
   phase = 'fly';
   phaseT = 0;
@@ -176,6 +192,8 @@ export default {
     });
     shownDay = run.day;
     brokenKey = null;
+    lastEcho = '';
+    pendingEcho = '';
     drag.active = false;
     t = 0;
     quitArmedUntil = 0;
@@ -250,6 +268,8 @@ export default {
     const bg = deskBackground(L.deskTop);
     ctx.drawImage(bg.canvas, 0, 0, W, H);
 
+    ctx.fillStyle = SEASON_TINT[seasonOf(run.day)];
+    ctx.fillRect(0, 0, W, H);
     drawStats(ctx);
     drawReign(ctx);
     drawText(ctx);
@@ -432,7 +452,8 @@ function drawReign(ctx) {
   ctx.font = font(13);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`第 ${run.reign} 任县令 · 在任第 ${Math.round(shownDay)} 天`, W / 2, L.reignY);
+  const season = SEASON_LABEL[seasonOf(run.day)];
+  ctx.fillText(`${season} · 第 ${run.reign} 任 · 在任第 ${Math.round(shownDay)} 天`, W / 2, L.reignY);
   ctx.fillStyle = COLORS.ink;
   ctx.font = font(13);
   ctx.fillText('见底或满溢就下台 · 在任越久越好', W / 2, L.reignY + 20);
@@ -443,13 +464,21 @@ function drawText(ctx) {
     return;
   }
   const h = lines.length * TEXT_LINE;
+  const echoH = lastEcho ? 26 : 0;
   const y = L.textBottom - h;
   const padY = 12;
   ctx.save();
   ctx.globalAlpha = textAlpha;
   ctx.fillStyle = 'rgba(255, 251, 244, 0.96)';
-  roundRect(ctx, 20, y - padY, W - 40, h + padY * 2, 10);
+  roundRect(ctx, 20, y - padY - echoH, W - 40, h + padY * 2 + echoH, 10);
   ctx.fill();
+  if (lastEcho) {
+    ctx.fillStyle = COLORS.redDeep;
+    ctx.font = font(13);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(lastEcho, W / 2, y - echoH + 2);
+  }
   ctx.fillStyle = '#1a1614';
   ctx.font = TEXT_FONT;
   drawLines(ctx, lines, W / 2, y, TEXT_LINE, { visible: Math.floor(reveal) });

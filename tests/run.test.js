@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createRun, drawCard, choose, isEligible, formatCardText,
+  createRun, drawCard, choose, isEligible, formatCardText, seasonOf,
 } from '../js/game/run.js';
 import { createMeta } from '../js/game/meta.js';
 
@@ -47,6 +47,24 @@ test('chainOnly, review and gated cards are not drawn from the normal pool', () 
     seen.add(drawCard(run, DECK, meta, Math.random).id);
   }
   assert.deepEqual([...seen].sort(), ['other', 'plain']);
+});
+
+test('seasonOf walks spring, summer, autumn, winter every forty days', () => {
+  assert.equal(seasonOf(1), 'spring');
+  assert.equal(seasonOf(40), 'spring');
+  assert.equal(seasonOf(41), 'summer');
+  assert.equal(seasonOf(81), 'autumn');
+  assert.equal(seasonOf(121), 'winter');
+  assert.equal(seasonOf(161), 'spring');
+});
+
+test('a season requirement keeps the card out of other seasons', () => {
+  const meta = createMeta();
+  const run = createRun(meta);
+  const card = { id: 'snow', requires: { season: 'winter' } };
+  assert.equal(isEligible(card, run, meta), false);
+  run.day = 121;
+  assert.equal(isEligible(card, run, meta), true);
 });
 
 test('isEligible checks flags, notFlags, minDay, stat ranges and meta gates', () => {
