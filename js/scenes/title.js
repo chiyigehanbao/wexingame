@@ -9,7 +9,7 @@ import { easeOutCubic, progress } from '../core/tween.js';
 import { session, toggleSound } from '../session.js';
 import { titleBackground } from '../ui/paper.js';
 import { COLORS, font } from '../ui/theme.js';
-import { drawSpaced } from '../ui/text.js';
+import { drawLivingText } from '../ui/text.js';
 import { Button, ButtonGroup, drawSeal } from '../ui/widgets.js';
 
 const petals = [];
@@ -94,39 +94,44 @@ export default {
       ctx.restore();
     });
 
-    const a = easeOutCubic(progress(t, 0, 0.9));
     const ty = H * 0.24;
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(0, (1 - a) * 14);
     ctx.fillStyle = COLORS.ink;
     ctx.textBaseline = 'middle';
     ctx.font = font(Math.min(60, W * 0.15), 'bold');
-    drawSpaced(ctx, '县太爷', W / 2, ty, 10);
+    drawLivingText(ctx, '县太爷', W / 2, ty, 10, t, {
+      bounce: 42, sway: 5, rot: 0.07, stagger: 0.1,
+    });
     ctx.font = font(Math.min(26, W * 0.068));
     ctx.fillStyle = COLORS.inkSoft;
-    drawSpaced(ctx, '今天也很忙', W / 2, ty + 58, 8);
-    ctx.restore();
+    drawLivingText(ctx, '今天也很忙', W / 2, ty + 58, 8, t, {
+      delay: 0.32, bounce: 22, sway: 3, rot: 0.04, stagger: 0.06,
+    });
 
-    const sealT = progress(t, 0.55, 0.35);
+    const sealT = progress(t, 0.7, 0.32);
     if (sealT > 0) {
-      const s = 1 + (1 - easeOutCubic(sealT)) * 1.2;
-      drawSeal(ctx, '忙', W / 2 + Math.min(132, W * 0.36), ty - 34, 32, 'square', COLORS.red, {
-        rotate: -0.12, scale: s, alpha: Math.min(1, sealT * 2),
+      const landed = sealT >= 1;
+      const s = 1 + (1 - easeOutCubic(sealT)) * 1.4;
+      const bob = landed ? Math.sin(t * 2.4) * 2 : 0;
+      const wob = landed ? Math.sin(t * 1.8) * 0.05 : 0;
+      drawSeal(ctx, '忙', W / 2 + Math.min(132, W * 0.36), ty - 34 + bob, 32, 'square', COLORS.red, {
+        rotate: -0.12 + wob, scale: s, alpha: Math.min(1, sealT * 2.4),
       });
     }
 
-    ctx.globalAlpha = easeOutCubic(progress(t, 0.4, 0.8));
+    const lineA = easeOutCubic(progress(t, 0.55, 0.45));
+    ctx.globalAlpha = lineA;
     ctx.fillStyle = COLORS.muted;
     ctx.font = font(14);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('一个穷县 · 一张公案 · 一堆麻烦事', W / 2, ty + 100);
+    ctx.fillText('一个穷县 · 一张公案 · 一堆麻烦事', W / 2, ty + 100 + (1 - lineA) * 8);
     ctx.fillStyle = COLORS.inkSoft;
-    ctx.fillText('四项见底或见顶就下台，在任越久越好', W / 2, ty + 124);
+    ctx.fillText('四项见底或见顶就下台，在任越久越好', W / 2, ty + 126 + (1 - lineA) * 8);
+    ctx.globalAlpha = 1;
     const m = session.meta;
     if (m.runs > 0) {
-      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天`, W / 2, ty + 148);
+      ctx.textAlign = 'center';
+      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天`, W / 2, ty + 150);
     }
     ctx.globalAlpha = easeOutCubic(progress(t, 0.6, 0.6));
     buttons.draw(ctx);

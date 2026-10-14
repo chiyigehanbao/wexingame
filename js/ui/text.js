@@ -1,6 +1,7 @@
 /**
  * 中文排版：按宽度换行、避头尾标点、显式换行；结果按 font|宽度|文本缓存。
  */
+import { clamp, easeOutBack } from '../core/tween.js';
 
 const NO_START = '，。、！？；：」』）》〉…—,.!?;:)~';
 const NO_END = '「『（《〈(';
@@ -88,6 +89,39 @@ export function drawSpaced(ctx, text, cx, y, spacing) {
   ctx.textAlign = 'left';
   chars.forEach((c, i) => {
     ctx.fillText(c, x, y);
+    x += widths[i] + spacing;
+  });
+}
+
+/**
+ * 逐字落下、回弹，落地后各自轻轻晃。
+ * @param {number} time 场景已过秒数
+ */
+export function drawLivingText(ctx, text, cx, y, spacing, time, opts = {}) {
+  const chars = [...text];
+  const widths = chars.map((c) => ctx.measureText(c).width);
+  const total = widths.reduce((s, w) => s + w, 0) + spacing * (chars.length - 1);
+  let x = cx - total / 2;
+  const stagger = opts.stagger ?? 0.08;
+  const delay = opts.delay ?? 0;
+  const bounce = opts.bounce ?? 26;
+  const sway = opts.sway ?? 3;
+  const rotAmp = opts.rot ?? 0.045;
+  chars.forEach((c, i) => {
+    const local = time - delay - i * stagger;
+    const p = clamp(local / 0.42);
+    const enter = easeOutBack(p);
+    const idle = clamp(local / 0.42);
+    const wave = Math.sin(time * 2.1 + i * 0.75) * sway * idle;
+    const tilt = Math.sin(time * 1.5 + i * 0.9) * rotAmp * idle;
+    ctx.save();
+    ctx.translate(x + widths[i] / 2, y + wave + (enter - 1) * bounce);
+    ctx.rotate(tilt);
+    ctx.scale(enter, enter);
+    ctx.globalAlpha *= clamp(p * 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(c, 0, 0);
+    ctx.restore();
     x += widths[i] + spacing;
   });
 }
