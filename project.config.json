@@ -29,7 +29,7 @@
   "compileType": "game",
   "libVersion": "latest",
   "appid": "wxba783816a3b19542",
-  "projectname": "quickstart",
+  "projectname": "xiantaiye",
   "condition": {
     "search": {
       "current": -1,
@@ -53,6 +53,9 @@
     "ignore": [
       { "type": "folder", "value": ".cursor" },
       { "type": "folder", "value": "docs" },
+      { "type": "folder", "value": "tests" },
+      { "type": "file", "value": "package.json" },
+      { "type": "file", "value": ".eslintrc.js" },
       { "type": "suffix", "value": ".md" },
       { "type": "suffix", "value": ".sh" },
       { "type": "suffix", "value": ".dot" }

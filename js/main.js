@@ -1,138 +1,45 @@
 /**
- * 《一夜剧本》v2 主入口：title → playing(mode) → ending。
+ * 《县太爷今天也很忙》入口：主循环 + 场景注册。
  */
-import './render';
-import { START_ID, getNode } from './story';
+import { ctx, beginFrame } from './core/screen.js';
+import { bindInput, onAnyTouch } from './core/input.js';
+import { initAudio } from './core/audio.js';
+import { initShare } from './core/platform.js';
 import {
-  setAnimTick,
-  drawTitleScreen,
-  drawPlaying,
-  drawEndingScreen,
-  preloadNodeImages,
-} from './renderer';
-import { setHitRegions, bindInput } from './input';
-import * as qteMode from './modes/qte';
-import * as mailMode from './modes/mail';
-import * as archiveMode from './modes/archive';
-import * as editMode from './modes/edit';
-import * as pressure from './modes/pressure';
-import {
-  resetRun,
-  applyEffect,
-  resolveEnding,
-} from './gameState';
-import { triggerSceneEnter } from './layers/sceneLayout';
+  registerScenes, go, update, draw,
+} from './core/router.js';
+import title from './scenes/title.js';
+import playScene from './scenes/play.js';
+import ending from './scenes/ending.js';
+import archive from './scenes/archive.js';
 
-export default class Main {
-  state = 'title';
+registerScenes({
+  title, play: playScene, ending, archive,
+});
 
-  currentNodeId = START_ID;
+initShare();
+initAudio();
+bindInput();
+onAnyTouch(initAudio);
 
-  aniId = 0;
+let last = Date.now();
 
-  /** @type {object[]} */
-  lastHitRegions = [];
-
-  constructor() {
-    bindInput();
-    this.loop();
-  }
-
-  goTitle() {
-    resetRun();
-    this.state = 'title';
-    this.currentNodeId = START_ID;
-    this.syncInput();
-  }
-
-  goNode(nodeId) {
-    if (nodeId === '__resolve_ending__') {
-      nodeId = resolveEnding();
-    }
-    const node = getNode(nodeId);
-    if (!node) {
-      this.goTitle();
-      return;
-    }
-    this.currentNodeId = nodeId;
-    triggerSceneEnter(nodeId);
-    if (node.isEnding) {
-      this.state = 'ending';
-    } else {
-      this.state = 'playing';
-    }
-    preloadNodeImages(node);
-    this.syncInput();
-  }
-
-  onPlayingTap(idx, node) {
-    const region = this.lastHitRegions.find((r) => r.index === idx);
-    if (node.mode === 'qte') {
-      if (region?._qteBeat) {
-        qteMode.handleTap();
-      }
-      return;
-    }
-    if (node.mode === 'mail' && mailMode.handleRegionTap(region)) {
-      return;
-    }
-    if (node.mode === 'archive' && archiveMode.handleRegionTap(region)) {
-      return;
-    }
-    if (node.mode === 'edit' && editMode.handleRegionTap(region)) {
-      return;
-    }
-    if (node.mode === 'narrative' || !node.mode) {
-      this.onChoice(idx);
-    }
-  }
-
-  onChoice(choiceIndex) {
-    const node = getNode(this.currentNodeId);
-    if (!node?.choices?.[choiceIndex]) {
-      return;
-    }
-    const choice = node.choices[choiceIndex];
-    applyEffect(choice.effect);
-    let nextId = choice.next;
-    if (nextId === '__resolve_ending__') {
-      nextId = resolveEnding();
-    }
-    this.goNode(nextId);
-  }
-
-  syncInput() {
-    if (this.state === 'title') {
-      const { regions } = drawTitleScreen();
-      setHitRegions(regions, () => {
-        resetRun();
-        this.goNode(START_ID);
-      });
-      return;
-    }
-    if (this.state === 'playing') {
-      const node = getNode(this.currentNodeId);
-      const hooks = {
-        goNext: (id) => {
-          pressure.stopCountdown();
-          this.goNode(id);
-        },
-      };
-      const regions = drawPlaying(node, hooks);
-      this.lastHitRegions = regions;
-      setHitRegions(regions, (idx) => this.onPlayingTap(idx, node));
-      return;
-    }
-    if (this.state === 'ending') {
-      const node = getNode(this.currentNodeId);
-      const btn = drawEndingScreen(node);
-      setHitRegions([btn], () => this.goTitle());
-    }
-  }
-
-  loop() {
-    setAnimTick(Date.now());
-    this.syncInput();
-    this.aniId = requestAnimationFrame(() => this.loop());
-  }
+if (wx.onShow) {
+  wx.onShow(() => {
+    last = Date.now();
+  });
 }
+
+function frame() {
+  const nowMs = Date.now();
+  const dt = Math.min(0.05, (nowMs - last) / 1000);
+  last = nowMs;
+  const now = nowMs / 1000;
+  update(dt, now);
+  beginFrame();
+  draw(ctx, now);
+  requestAnimationFrame(frame);
+}
+
+go('title');
+requestAnimationFrame(frame);
