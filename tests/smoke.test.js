@@ -125,7 +125,7 @@ test('full playthrough: title → reign → ending → archive → title → qui
   step(5);
   assert.match(screenText(), /第1任县令/, 'intro card text revealed');
   assert.match(screenText(), /孙不二/);
-  assert.match(screenText(), /左右拖动卡牌/);
+  assert.match(screenText(), /先看看账本/);
 
   handlers.start(touch(W / 2, 600));
   for (let i = 1; i <= 8; i += 1) {

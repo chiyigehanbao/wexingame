@@ -3,7 +3,7 @@
  */
 import { ctx, beginFrame } from './core/screen.js';
 import { bindInput, onAnyTouch } from './core/input.js';
-import { initAudio } from './core/audio.js';
+import { initAudio, pumpAudio } from './core/audio.js';
 import { initShare } from './core/platform.js';
 import {
   registerScenes, go, update, draw,
@@ -35,6 +35,7 @@ function frame() {
   const dt = Math.min(0.05, (nowMs - last) / 1000);
   last = nowMs;
   const now = nowMs / 1000;
+  pumpAudio();
   update(dt, now);
   beginFrame();
   draw(ctx, now);

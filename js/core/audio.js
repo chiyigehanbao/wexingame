@@ -69,27 +69,39 @@ function noise(dur, env, smooth) {
   });
 }
 
-function synthAll() {
-  SCALE.forEach((f, i) => {
-    buffers[`note${i}`] = pluck(f);
-  });
-  buffers.gavel = (() => {
+const pending = [];
+
+function build(name) {
+  const noteIdx = /^note(\d)$/.exec(name);
+  if (noteIdx) {
+    return pluck(SCALE[Number(noteIdx[1])]);
+  }
+  if (name === 'gavel') {
     const thump = partials(0.35, [[95, 0.9, 18], [180, 0.4, 30], [820, 0.35, 55], [1340, 0.2, 80]]);
     const d = thump.getChannelData(0);
     for (let i = 0; i < 400; i += 1) {
       d[i] += (Math.random() * 2 - 1) * 0.6 * (1 - i / 400);
     }
     return thump;
-  })();
-  buffers.wood = partials(0.18, [[1180, 0.7, 42], [2360, 0.25, 70], [540, 0.2, 35]]);
-  buffers.paper = noise(0.22, (t) => Math.sin(Math.PI * t) ** 2 * 0.5, (t) => 0.08 + 0.3 * t);
-  buffers.tick = noise(0.012, (t) => (1 - t) * 0.5, 0.6);
-  buffers.gong = partials(3.2, [
-    [176, 0.5, 1.1], [261, 0.32, 1.6], [369, 0.22, 2.2], [512, 0.14, 3], [88, 0.3, 0.9],
-  ]);
+  }
+  if (name === 'wood') {
+    return partials(0.18, [[1180, 0.7, 42], [2360, 0.25, 70], [540, 0.2, 35]]);
+  }
+  if (name === 'paper') {
+    return noise(0.22, (t) => Math.sin(Math.PI * t) ** 2 * 0.5, (t) => 0.08 + 0.3 * t);
+  }
+  if (name === 'tick') {
+    return noise(0.012, (t) => (1 - t) * 0.5, 0.6);
+  }
+  if (name === 'gong') {
+    return partials(3.2, [
+      [176, 0.5, 1.1], [261, 0.32, 1.6], [369, 0.22, 2.2], [512, 0.14, 3], [88, 0.3, 0.9],
+    ]);
+  }
+  return null;
 }
 
-/** 首次触摸时调用（部分机型需要用户手势后才能出声） */
+/** 创建音频上下文，采样分帧合成，避免第一次点击卡顿。 */
 export function initAudio() {
   if (ac || !wx.createWebAudioContext) {
     return;
@@ -99,9 +111,32 @@ export function initAudio() {
     master = ac.createGain();
     master.gain.value = 0.8;
     master.connect(ac.destination);
-    synthAll();
+    SCALE.forEach((_, i) => pending.push(`note${i}`));
+    pending.push('gavel', 'wood', 'paper', 'tick', 'gong');
   } catch (e) {
     ac = null;
+  }
+}
+
+/** 每帧合成一个采样。 */
+export function pumpAudio() {
+  if (!ac || !pending.length) {
+    return;
+  }
+  const name = pending.shift();
+  if (!buffers[name]) {
+    buffers[name] = build(name);
+  }
+}
+
+function ensure(name) {
+  if (buffers[name] || !ac) {
+    return;
+  }
+  buffers[name] = build(name);
+  const i = pending.indexOf(name);
+  if (i >= 0) {
+    pending.splice(i, 1);
   }
 }
 
@@ -114,7 +149,11 @@ export function isSoundEnabled() {
 }
 
 export function play(name, volume = 1, rate = 1) {
-  if (!ac || !enabled || !buffers[name]) {
+  if (!ac || !enabled) {
+    return;
+  }
+  ensure(name);
+  if (!buffers[name]) {
     return;
   }
   try {

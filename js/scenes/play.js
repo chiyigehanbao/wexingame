@@ -115,7 +115,7 @@ function commit(side) {
   let downs = 0;
   Object.keys(res.delta).forEach((k) => {
     const d = res.delta[k];
-    flashes[k] = { t: 0, dir: Math.sign(d), big: fxMagnitude(d) >= 3 };
+    flashes[k] = { t: 0, dir: Math.sign(d), amount: d, big: fxMagnitude(d) >= 3 };
     if (d > 0) {
       ups += 1;
     } else {
@@ -255,6 +255,7 @@ export default {
     drawText(ctx);
     drawDeck(ctx);
     drawActiveCard(ctx);
+    drawChoices(ctx);
     drawHint(ctx);
     buttons.draw(ctx);
   },
@@ -344,11 +345,12 @@ function drawStats(ctx) {
 
     const mag = fxMagnitude(fx[k]);
     if (mag > 0) {
-      ctx.globalAlpha = amt;
-      ctx.fillStyle = COLORS.ink;
+      ctx.globalAlpha = 0.35 + 0.65 * amt;
+      ctx.strokeStyle = COLORS.ink;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.arc(cx, top - 9, [0, 2.6, 4, 5.6][mag], 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(cx, top - 11, [0, 4, 6, 8][mag], 0, Math.PI * 2);
+      ctx.stroke();
       ctx.globalAlpha = 1;
     }
 
@@ -410,9 +412,10 @@ function drawStats(ctx) {
       const p = clamp(f.t);
       ctx.globalAlpha = 1 - easeInCubic(p);
       ctx.fillStyle = f.dir > 0 ? COLORS.jade : COLORS.red;
-      ctx.font = font(12, 'bold');
+      ctx.font = font(13, 'bold');
       ctx.textAlign = 'center';
-      ctx.fillText(f.dir > 0 ? '▲' : '▼', cx + ICON / 2 + 6, top + 4 - p * 12);
+      const sign = f.amount > 0 ? '+' : '';
+      ctx.fillText(`${sign}${f.amount}`, cx, top - 12 - p * 14);
       ctx.globalAlpha = 1;
     }
 
@@ -586,19 +589,41 @@ function drawActiveCard(ctx) {
   ctx.restore();
 }
 
-function drawHint(ctx) {
-  const first = session.meta.runs === 0 && run.draws <= 3;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (first && phase === 'idle' && !drag.active) {
-    const wob = Math.sin(t * 3) * 4;
-    ctx.fillStyle = 'rgba(251, 246, 234, 0.85)';
-    ctx.font = font(14);
-    ctx.fillText('左右拖动卡牌，做出决断', W / 2, L.hintY);
-    ctx.font = font(16, 'bold');
-    ctx.fillText('‹', W / 2 - 104 - wob, L.hintY);
-    ctx.fillText('›', W / 2 + 104 + wob, L.hintY);
+function drawChoices(ctx) {
+  if (!card || phase === 'ending' || phase === 'done' || phase === 'fly') {
+    return;
   }
+  const y = L.hintY;
+  const amt = phase === 'idle' ? dragAmount() : 0;
+  const hot = drag.active && Math.abs(cardX) > 12 ? currentSide() : null;
+  const onWood = y > L.deskTop + 6;
+  const base = onWood ? '251, 246, 234' : '43, 38, 34';
+  ctx.textBaseline = 'middle';
+  ctx.font = font(15, 'bold');
+  [
+    ['left', card.left?.label || '', 18, 'left'],
+    ['right', card.right?.label || '', W - 18, 'right'],
+  ].forEach(([side, label, x, align]) => {
+    const wob = hot ? 0 : Math.sin(t * 3) * 3;
+    const mark = side === 'left' ? '‹ ' : ' ›';
+    const text = side === 'left' ? `${mark}${label}` : `${label}${mark}`;
+    const dx = side === 'left' ? -wob : wob;
+    let alpha = 0.72;
+    if (hot === side) {
+      alpha = 0.45 + 0.55 * amt;
+    } else if (hot) {
+      alpha = 0.28;
+    }
+    ctx.globalAlpha = alpha * (phase === 'flip' ? textAlpha : 1);
+    ctx.fillStyle = `rgba(${base}, 1)`;
+    ctx.textAlign = align;
+    ctx.fillText(text, x + dx, y);
+  });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+function drawHint(ctx) {
   if (phase === 'ending' && brokenKey) {
     const p = easeOutBack(progress(phaseT, 0.15, 0.4));
     ctx.save();
