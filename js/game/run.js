@@ -17,10 +17,33 @@ export function seasonOf(day) {
   return SEASONS[index];
 }
 const COOLDOWN = 12;
+const CAREER_GAP = 8;
+
+export const RANKS = ['县令', '通判', '知府', '按察使', '巡抚', '尚书'];
+
+/** 四项都在稳妥区间，才配接受考核。 */
+export function statsArePromotable(stats) {
+  return STAT_KEYS.every((k) => stats[k] >= 48 && stats[k] <= 88);
+}
+
+export function careerAge(run) {
+  return 30 + run.rank * 5 + Math.floor((Math.max(1, run.day) - 1) / 40);
+}
+
+export function promote(run) {
+  run.rank = Math.min(RANKS.length - 1, run.rank + 1);
+  run.notice = RANKS[run.rank];
+  STAT_KEYS.forEach((k) => {
+    run.stats[k] = Math.round(run.stats[k] * 0.45 + 52 * 0.55);
+  });
+}
 
 export function createRun(meta) {
   return {
     reign: meta.runs + 1,
+    rank: 0,
+    notice: '',
+    lastCareerDraw: 0,
     day: 1,
     draws: 0,
     stats: createStats(),
@@ -113,14 +136,38 @@ function takeRegular(run, deck, meta, rng) {
   return pick(base, rng);
 }
 
+function takeCareer(run, deck) {
+  if (run.draws - run.lastCareerDraw < CAREER_GAP) {
+    return null;
+  }
+  const old = careerAge(run) >= 56 || run.rank >= RANKS.length - 1;
+  const steady = STAT_KEYS.every((k) => run.stats[k] >= 28 && run.stats[k] <= 92);
+  let kind = null;
+  if (old && steady) {
+    kind = 'heir';
+  } else if (!old && statsArePromotable(run.stats)) {
+    kind = 'inspect';
+  }
+  if (!kind) {
+    return null;
+  }
+  const card = deck.find((c) => c.career === kind);
+  if (!card) {
+    return null;
+  }
+  run.lastCareerDraw = run.draws;
+  return card;
+}
+
 /**
- * 抽下一张牌：剧情队列 > 年终考核 > 普通卡池。
+ * 抽下一张牌：剧情队列 > 升官考核 > 年终考核 > 普通卡池。
  */
 export function drawCard(run, deck, meta, rng) {
   run.draws += 1;
   const byId = {};
   deck.forEach((c) => { byId[c.id] = c; });
   const card = takeQueued(run, byId)
+    || takeCareer(run, deck)
     || takeReview(run, deck, meta, rng)
     || takeRegular(run, deck, meta, rng);
   run.used[card.id] = true;
@@ -158,6 +205,14 @@ export function choose(run, card, side, rng) {
   run.history.push({ id: card.id, side });
 
   let ending = opt.ending || null;
+  if (!ending && opt.careerResult === 'promote') {
+    const shaky = opt.risky && STAT_KEYS.some((k) => run.stats[k] < 40);
+    if (shaky) {
+      ending = 'dismissed';
+    } else {
+      promote(run);
+    }
+  }
   if (!ending) {
     const broken = findBrokenStat(run.stats);
     if (broken) {
@@ -175,5 +230,7 @@ export function formatCardText(card, run, meta, endings) {
   const handoff = (meta.lastEnding && endings[meta.lastEnding]?.handoff) || '';
   return (card.text || '')
     .replace(/\{n\}/g, String(run.reign))
-    .replace(/\{handoff\}/g, handoff);
+    .replace(/\{handoff\}/g, handoff)
+    .replace(/\{rank\}/g, RANKS[run.rank] || '县令')
+    .replace(/\{age\}/g, String(careerAge(run)));
 }

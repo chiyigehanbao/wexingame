@@ -224,6 +224,12 @@ export const ECHOES = {
   'winter_coal:right': '平价炭放出去，庙里有了火。',
   'winter_bonus:left': '过年钱没有，衙役们过年也在。',
   'winter_bonus:right': '过年钱发了，衙门里有了笑声。',
+  'inspect:left': '从容应对，考核过了。',
+  'inspect:right': '银子送出去，人还在看你。',
+  'heir_ask:left': '你说不立继承人，印先挂着。',
+  'heir_ask:right': '你决定把印交出去。',
+  'heir_pick:left': '印交给了儿子。',
+  'heir_pick:right': '印交给了师爷。',
 };
 
 export function echoOf(id, side) {

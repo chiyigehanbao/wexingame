@@ -57,7 +57,7 @@ test('every choice has a short aftermath line', () => {
 
 test('every chainOnly card is reachable from some choice', () => {
   const targets = new Set(CARDS.flatMap((c) => options(c).map((o) => o.chain?.id).filter(Boolean)));
-  CARDS.filter((c) => c.chainOnly && c.id !== 'intro')
+  CARDS.filter((c) => c.chainOnly && c.id !== 'intro' && !c.career)
     .forEach((c) => assert.ok(targets.has(c.id), `${c.id} is never chained`));
 });
 
@@ -68,7 +68,7 @@ test('every ending has text and is reachable', () => {
     const e = ENDINGS[id];
     assert.ok(e.title && e.text && e.handoff && e.seal, `${id} incomplete`);
     const statEnding = /^(people|money|court|heart)_(low|high)$/.test(id);
-    assert.ok(statEnding || id === 'full_term' || explicit.has(id), `${id} unreachable`);
+    assert.ok(statEnding || id === 'full_term' || id === 'dismissed' || explicit.has(id), `${id} unreachable`);
   });
 });
 

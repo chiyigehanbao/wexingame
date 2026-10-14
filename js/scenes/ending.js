@@ -11,6 +11,7 @@ import {
   clamp, easeInCubic, easeOutCubic, progress,
 } from '../core/tween.js';
 import { ENDINGS, ENDING_ORDER } from '../data/endings.js';
+import { RANKS, careerAge } from '../game/run.js';
 import { countEndings } from '../game/meta.js';
 import { paperBackground } from '../ui/paper.js';
 import { COLORS, font } from '../ui/theme.js';
@@ -159,7 +160,8 @@ export default {
 
     ctx.fillStyle = COLORS.muted;
     ctx.font = font(14);
-    const info = `第 ${run.reign} 任 · 在任 ${run.day} 天 · 最长 ${result.meta.best} 天`;
+    const rank = RANKS[run.rank] || '县令';
+    const info = `${rank} · ${careerAge(run)}岁 · 在任 ${run.day} 天 · 最长 ${result.meta.best} 天`;
     ctx.fillText(info, W / 2, L.infoY);
 
     const tags = [];

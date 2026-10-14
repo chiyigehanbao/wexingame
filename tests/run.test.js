@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createRun, drawCard, choose, isEligible, formatCardText, seasonOf,
+  careerAge, RANKS,
 } from '../js/game/run.js';
 import { createMeta } from '../js/game/meta.js';
 
@@ -156,6 +157,65 @@ test('endings: explicit ending, broken stat, then full term', () => {
   run = createRun(meta);
   run.day = 364;
   assert.equal(choose(run, DECK[2], 'left', seq(0)).ending, 'full_term');
+});
+
+const CAREER_DECK = [
+  { id: 'filler', who: 'a', text: 't', left: choice(), right: choice() },
+  {
+    id: 'inspect', career: 'inspect', chainOnly: true, who: 'qinchai', text: '你是{rank}',
+    left: choice({ court: 4 }, { careerResult: 'promote' }),
+    right: choice({ money: -22, heart: -14 }, { careerResult: 'promote', risky: true }),
+  },
+  {
+    id: 'heir_ask', career: 'heir', chainOnly: true, who: 'shiye', text: '{rank}{age}岁',
+    left: choice({}, { ending: 'retire' }),
+    right: choice({}, { chain: { id: 'heir_pick', delay: 0 } }),
+  },
+];
+
+function steady(run) {
+  Object.keys(run.stats).forEach((k) => { run.stats[k] = 60; });
+}
+
+test('steady stats bring an inspection, and a calm answer promotes', () => {
+  const meta = createMeta();
+  const run = createRun(meta);
+  run.queue = [];
+  steady(run);
+  let card = null;
+  for (let i = 0; i < 8; i += 1) {
+    card = drawCard(run, CAREER_DECK, meta, seq(0));
+  }
+  assert.equal(card.id, 'inspect');
+  assert.equal(choose(run, card, 'left', seq(0)).ending, null);
+  assert.equal(run.rank, 1);
+  assert.equal(run.notice, '通判');
+  assert.ok(run.stats.people > 48 && run.stats.people < 80);
+});
+
+test('a bribe that leaves a stat weak is dismissal, not a promotion', () => {
+  const meta = createMeta();
+  const run = createRun(meta);
+  steady(run);
+  run.stats.money = 50;
+  const card = CAREER_DECK[1];
+  assert.equal(choose(run, card, 'right', seq(0)).ending, 'dismissed');
+  assert.equal(run.rank, 0);
+});
+
+test('old age or the top rank brings the heir question instead of another promotion', () => {
+  const meta = createMeta();
+  const run = createRun(meta);
+  run.queue = [];
+  steady(run);
+  run.rank = RANKS.length - 1;
+  let card = null;
+  for (let i = 0; i < 8; i += 1) {
+    card = drawCard(run, CAREER_DECK, meta, seq(0));
+  }
+  assert.equal(card.id, 'heir_ask');
+  assert.equal(careerAge({ rank: 0, day: 1 }), 30);
+  assert.equal(formatCardText(card, run, meta, {}), `${RANKS[run.rank]}${careerAge(run)}岁`);
 });
 
 test('choose records the met character', () => {

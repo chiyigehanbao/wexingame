@@ -16,7 +16,7 @@ import { CARDS } from '../data/cards.js';
 import { CHARACTERS } from '../data/characters.js';
 import { ENDINGS } from '../data/endings.js';
 import {
-  createRun, drawCard, choose, formatCardText, seasonOf,
+  createRun, drawCard, choose, formatCardText, seasonOf, careerAge, RANKS,
 } from '../game/run.js';
 import { echoOf } from '../data/echoes.js';
 import { STAT_KEYS, fxMagnitude } from '../game/stats.js';
@@ -60,6 +60,8 @@ const flashes = {};
 let brokenKey = null;
 let lastEcho = '';
 let pendingEcho = '';
+let notice = '';
+let noticeUntil = 0;
 
 const SEASON_LABEL = {
   spring: '春', summer: '夏', autumn: '秋', winter: '冬',
@@ -194,6 +196,8 @@ export default {
     brokenKey = null;
     lastEcho = '';
     pendingEcho = '';
+    notice = '';
+    noticeUntil = 0;
     drag.active = false;
     t = 0;
     quitArmedUntil = 0;
@@ -219,6 +223,12 @@ export default {
       }
     });
     shownDay = damp(shownDay, run.day, 8, dt);
+    if (run.notice) {
+      notice = `升为${run.notice}`;
+      noticeUntil = t + 2.4;
+      run.notice = '';
+      chime(true);
+    }
 
     if (phase === 'flip' && phaseT >= FLIP_DUR) {
       phase = 'idle';
@@ -453,10 +463,17 @@ function drawReign(ctx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const season = SEASON_LABEL[seasonOf(run.day)];
-  ctx.fillText(`${season} · 第 ${run.reign} 任 · 在任第 ${Math.round(shownDay)} 天`, W / 2, L.reignY);
-  ctx.fillStyle = COLORS.ink;
+  const rank = RANKS[run.rank] || '县令';
+  ctx.fillText(`${season} · ${rank} · ${careerAge(run)}岁`, W / 2, L.reignY);
   ctx.font = font(13);
-  ctx.fillText('见底或满溢就下台 · 在任越久越好', W / 2, L.reignY + 20);
+  if (t < noticeUntil && notice) {
+    ctx.fillStyle = COLORS.redDeep;
+    ctx.font = font(14, 'bold');
+    ctx.fillText(notice, W / 2, L.reignY + 20);
+  } else {
+    ctx.fillStyle = COLORS.ink;
+    ctx.fillText(`第 ${Math.round(shownDay)} 天 · 稳住能升官 · 不慎就被撤`, W / 2, L.reignY + 20);
+  }
 }
 
 function drawText(ctx) {

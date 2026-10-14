@@ -6,6 +6,7 @@ export function createMeta() {
   return {
     runs: 0,
     best: 0,
+    bestRank: 0,
     endings: {},
     met: {},
     lastEnding: null,
@@ -20,6 +21,7 @@ export function normalizeMeta(raw) {
   return {
     runs: Number.isFinite(raw.runs) ? raw.runs : 0,
     best: Number.isFinite(raw.best) ? raw.best : 0,
+    bestRank: Number.isFinite(raw.bestRank) ? raw.bestRank : 0,
     endings: raw.endings && typeof raw.endings === 'object' ? { ...raw.endings } : {},
     met: raw.met && typeof raw.met === 'object' ? { ...raw.met } : {},
     lastEnding: typeof raw.lastEnding === 'string' ? raw.lastEnding : null,
@@ -43,6 +45,7 @@ export function recordRun(meta, run) {
     meta: {
       runs: meta.runs + 1,
       best: Math.max(meta.best, run.day),
+      bestRank: Math.max(meta.bestRank || 0, run.rank || 0),
       endings: { ...meta.endings, [run.ending]: (meta.endings[run.ending] || 0) + 1 },
       met: { ...meta.met, ...run.met },
       lastEnding: run.ending,

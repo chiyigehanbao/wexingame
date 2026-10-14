@@ -679,6 +679,26 @@ export const CARDS = [
     right: opt('发', { money: -10, court: 6, people: 4 }),
   },
 
+  // —— 仕途：四项稳住时由抽牌逻辑插入，不进普通牌池 ——
+  {
+    id: 'inspect', who: 'qinchai', career: 'inspect', chainOnly: true,
+    text: '吏部派人下来了。你如今是{rank}，四项都还看得过去。这一关，怎么过？',
+    left: opt('从容应对', { court: 4, heart: 3 }, { careerResult: 'promote' }),
+    right: opt('塞点银子', { money: -22, heart: -14 }, { careerResult: 'promote', risky: true }),
+  },
+  {
+    id: 'heir_ask', who: 'shiye', career: 'heir', chainOnly: true,
+    text: '你已是{rank}，今年{age}岁。上面问：这颗印，还自己攥着，还是交出去？',
+    left: opt('不立继承人', {}, { ending: 'retire' }),
+    right: opt('要立', {}, chain('heir_pick', 0)),
+  },
+  {
+    id: 'heir_pick', who: 'shiye', chainOnly: true,
+    text: '印交给谁？儿子稳当，师爷懂衙门。',
+    left: opt('交给儿子', {}, { ending: 'heir_son' }),
+    right: opt('交给师爷', {}, { ending: 'heir_shiye' }),
+  },
+
   // —— 钦差（解锁 2 个结局后出现）——
   {
     id: 'qin_audit', who: 'qinchai', requires: { endings: 2 },

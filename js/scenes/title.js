@@ -6,6 +6,7 @@ import { go } from '../core/router.js';
 import { play, ambient } from '../core/audio.js';
 import { vibrate } from '../core/platform.js';
 import { easeOutCubic, progress } from '../core/tween.js';
+import { RANKS } from '../game/run.js';
 import { session, toggleSound } from '../session.js';
 import { titleBackground } from '../ui/paper.js';
 import { COLORS, font } from '../ui/theme.js';
@@ -126,12 +127,13 @@ export default {
     ctx.textBaseline = 'middle';
     ctx.fillText('一个穷县 · 一张公案 · 一堆麻烦事', W / 2, ty + 100 + (1 - lineA) * 8);
     ctx.fillStyle = COLORS.inkSoft;
-    ctx.fillText('四项见底或见顶就下台，在任越久越好', W / 2, ty + 126 + (1 - lineA) * 8);
+    ctx.fillText('四项稳住能升官，处理不好就被撤官', W / 2, ty + 126 + (1 - lineA) * 8);
     ctx.globalAlpha = 1;
     const m = session.meta;
     if (m.runs > 0) {
       ctx.textAlign = 'center';
-      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天`, W / 2, ty + 150);
+      const rank = m.bestRank > 0 ? ` · 官至${RANKS[m.bestRank] || ''}` : '';
+      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天${rank}`, W / 2, ty + 150);
     }
     ctx.globalAlpha = easeOutCubic(progress(t, 0.6, 0.6));
     buttons.draw(ctx);
