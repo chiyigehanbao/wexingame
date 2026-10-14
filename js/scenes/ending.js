@@ -50,7 +50,7 @@ function unlockNotes(before, after) {
 function layout() {
   L.seal = Math.min(116, W * 0.3);
   L.sealY = SAFE_TOP + 24 + L.seal / 2;
-  L.titleY = L.sealY + L.seal / 2 + 36;
+  L.titleY = L.sealY + L.seal / 2 + 56;
   L.infoY = L.titleY + 32;
   L.textTop = L.infoY + 28;
   L.textW = W - 64;
@@ -170,8 +170,8 @@ export default {
       tags.push('新纪录');
     }
     tags.forEach((tag, i) => {
-      const tx = W / 2 + (i - (tags.length - 1) / 2) * 70;
-      const ty = L.titleY - 30 - 0;
+      const tx = W / 2 + (i - (tags.length - 1) / 2) * 78;
+      const ty = L.sealY + L.seal / 2 + 22;
       ctx.save();
       ctx.translate(tx + (i % 2 ? 6 : -6), ty);
       ctx.rotate(i % 2 ? 0.06 : -0.06);

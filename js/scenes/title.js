@@ -111,7 +111,7 @@ export default {
     const sealT = progress(t, 0.55, 0.35);
     if (sealT > 0) {
       const s = 1 + (1 - easeOutCubic(sealT)) * 1.2;
-      drawSeal(ctx, '忙', W / 2 + Math.min(110, W * 0.29), ty - 26, 34, 'square', COLORS.red, {
+      drawSeal(ctx, '忙', W / 2 + Math.min(132, W * 0.36), ty - 34, 32, 'square', COLORS.red, {
         rotate: -0.12, scale: s, alpha: Math.min(1, sealT * 2),
       });
     }

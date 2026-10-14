@@ -62,26 +62,29 @@ let quitBtn = null;
 let quitArmedUntil = 0;
 
 function layout() {
-  L.iconTop = SAFE_TOP + 16;
-  L.reignY = L.iconTop + ICON + 34;
-  L.textTop = L.reignY + 18;
-  L.textW = W - 56;
-  const textBottom = L.textTop + TEXT_MAX_LINES * TEXT_LINE;
-  const bottomReserve = SAFE_BOTTOM + 56;
-  const avail = H - bottomReserve - (textBottom + 14);
-  let cardW = Math.min(W - 96, 272);
-  let cardH = Math.min(cardW * 1.22, avail);
-  if (cardH < cardW * 1.05) {
-    cardW = cardH / 1.05;
+  L.iconTop = SAFE_TOP + 8;
+  L.reignY = L.iconTop + ICON + 48;
+  L.textW = W - 64;
+  const contentTop = L.reignY + 26;
+  const contentBottom = H - SAFE_BOTTOM - 58;
+  const textSlot = TEXT_MAX_LINES * TEXT_LINE;
+  const gap = 22;
+  let cardW = Math.min(W - 72, 292);
+  let cardH = cardW * 1.16;
+  const maxCard = contentBottom - contentTop - textSlot - gap;
+  if (cardH > maxCard) {
+    cardH = Math.max(180, maxCard);
+    cardW = cardH / 1.16;
   }
-  const spare = Math.max(0, avail - cardH);
   L.cardW = cardW;
   L.cardH = cardH;
   L.cardCX = W / 2;
-  L.cardCY = textBottom + 14 + spare * 0.4 + cardH / 2;
-  L.deskTop = Math.round(L.cardCY + cardH * 0.22);
-  L.hintY = Math.min(H - SAFE_BOTTOM - 14, L.cardCY + cardH / 2 + 30);
-  const margin = W * 0.13;
+  L.cardCY = contentBottom - 18 - cardH / 2;
+  L.textBottom = L.cardCY - cardH / 2 - gap;
+  L.textTop = L.textBottom - textSlot;
+  L.deskTop = Math.round(L.cardCY + cardH * 0.18);
+  L.hintY = L.cardCY + cardH / 2 + 22;
+  const margin = W * 0.14;
   L.statX = STAT_KEYS.map((_, i) => margin + ((W - margin * 2) / 3) * i);
 }
 
@@ -417,7 +420,7 @@ function drawStats(ctx) {
     ctx.font = font(12);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(STAT_META[k].label, cx, top + ICON + 14);
+    ctx.fillText(STAT_META[k].label, cx, L.reignY - 22);
   });
 }
 
@@ -443,7 +446,7 @@ function drawText(ctx) {
   ctx.fillStyle = COLORS.ink;
   ctx.font = TEXT_FONT;
   const h = lines.length * TEXT_LINE;
-  const y = L.textTop + (TEXT_MAX_LINES * TEXT_LINE - h) / 2;
+  const y = L.textBottom - h;
   drawLines(ctx, lines, W / 2, y, TEXT_LINE, { visible: Math.floor(reveal) });
   ctx.globalAlpha = 1;
 }
@@ -492,22 +495,22 @@ function drawCardFront(ctx, c, w, h, amt) {
     ctx.stroke();
   });
 
-  const sealSize = Math.round(w * 0.44);
-  drawSeal(ctx, who.seal, 0, -h * 0.07, sealSize, who.shape, who.color, { rotate: -0.04 });
+  const sealSize = Math.round(w * 0.42);
+  drawSeal(ctx, who.seal, 0, h * 0.02, sealSize, who.shape, who.color, { rotate: -0.04 });
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = COLORS.ink;
   ctx.font = font(20, 'bold');
-  ctx.fillText(who.name, 0, h * 0.27);
+  ctx.fillText(who.name, 0, h * 0.3);
   ctx.fillStyle = COLORS.muted;
   ctx.font = font(13);
-  ctx.fillText(who.role, 0, h * 0.27 + 24);
+  ctx.fillText(who.role, 0, h * 0.3 + 22);
 
   if (amt > 0) {
     const label = c[currentSide()]?.label || '';
-    const bandH = 46;
-    const by = -h / 2 + 22;
+    const bandH = 36;
+    const by = -h / 2 + 16;
     ctx.globalAlpha = amt;
     ctx.fillStyle = 'rgba(43, 38, 34, 0.92)';
     ctx.fillRect(-w / 2 + 12, by, w - 24, bandH);
