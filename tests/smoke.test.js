@@ -122,8 +122,14 @@ test('full playthrough: title → reign → ending → archive → title → qui
   assert.match(screenText(), /一个穷县/);
 
   tap(W / 2, 514);
-  step(5);
-  assert.match(screenText(), /第1任县令/, 'intro card text revealed');
+  for (let i = 0; i < 80 && !/新来的县令/.test(screenText()); i += 1) {
+    // 升堂卷宗懒加载：等动态 import 落地
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setImmediate(r));
+    step(0.15);
+  }
+  assert.doesNotMatch(screenText(), /空位/, 'a new game skips the save shelf');
+  assert.match(screenText(), /新来的县令/, 'intro card text revealed');
   assert.match(screenText(), /孙不二/);
   assert.match(screenText(), /先看看账本/);
 
@@ -137,7 +143,7 @@ test('full playthrough: title → reign → ending → archive → title → qui
   handlers.move(touch(W / 2 + 160, 600));
   handlers.end(touch(W / 2 + 160, 600));
   step(1.5);
-  assert.doesNotMatch(screenText(), /第1任县令/, 'next card replaced the intro');
+  assert.doesNotMatch(screenText(), /新来的县令/, 'next card replaced the intro');
 
   const titles = Object.values(ENDINGS).map((e) => e.title);
   let swipes = 0;
@@ -150,17 +156,27 @@ test('full playthrough: title → reign → ending → archive → title → qui
   step(3);
   assert.ok(titles.some((tt) => screenText().includes(tt)), `reached an ending after ${swipes} swipes`);
   assert.equal(meta().runs, 1);
-  assert.match(screenText(), /新结局/);
+  assert.match(screenText(), /头一回见/);
+  const captions = drawn.filter((d) => /岁 · 第\d+年$/.test(d.s) || /^在任 \d+ 天 · 最长 \d+ 天$/.test(d.s));
+  assert.ok(captions.length >= 2, 'ending caption is two lines');
+  captions.forEach((line) => {
+    assert.ok([...line.s].length * 14 <= W - 32, line.s);
+  });
   t.diagnostic(`ending ${meta().lastEnding} after ${swipes} swipes, ${meta().best} days`);
 
   tap(67.5 + 114 + 12 + 57, 737);
   assert.equal(shared.length, 1, 'share button shares');
-  assert.match(shared[0].title, /县令/);
+  assert.match(shared[0].title, /^我/, 'share uses this ending’s line');
 
   tap(124.5, 737);
   step(1.2);
   assert.match(screenText(), /历任档案/);
   assert.match(screenText(), /历任 1 任/);
+  const shelf = drawn.filter((d) => /^历任 \d+ 任 · 最长 \d+ 天$/.test(d.s) || /^收场 \d+ \/ \d+$/.test(d.s));
+  assert.ok(shelf.length >= 2, 'archive summary is two lines');
+  shelf.forEach((line) => {
+    assert.ok([...line.s].length * 13 <= W - 32, line.s);
+  });
 
   const cellW = (W - 40) / 3;
   const cellH = cellW * 0.92;
@@ -168,20 +184,24 @@ test('full playthrough: title → reign → ending → archive → title → qui
   for (let i = 0; i < 12 && !opened; i += 1) {
     tap(20 + (i % 3) * cellW + cellW / 2, 178 + Math.floor(i / 3) * cellH + cellH / 2);
     step(0.3);
-    opened = screenText().includes('点击任意处关闭');
+    opened = screenText().includes('点一下合上');
   }
   assert.ok(opened, 'an unlocked ending opens its detail card');
   tap(W / 2, 100);
   step(0.3);
-  assert.doesNotMatch(screenText(), /点击任意处关闭/);
+  assert.doesNotMatch(screenText(), /点一下合上/);
 
   tap(43, 110);
   step(1.2);
   assert.match(screenText(), /已历 1 任/);
 
   tap(W / 2, 514);
-  step(2);
-  assert.match(screenText(), /第2任县令/);
+  for (let i = 0; i < 80 && !/新来的县令/.test(screenText()); i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setImmediate(r));
+    step(0.15);
+  }
+  assert.match(screenText(), /新来的县令/);
   tap(48, 751);
   step(0.2);
   assert.match(screenText(), /再点退堂/);

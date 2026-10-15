@@ -29,7 +29,7 @@ test('applyFx ignores unknown keys and missing fx', () => {
 test('findBrokenStat reports the first stat at a boundary', () => {
   assert.equal(findBrokenStat(createStats()), null);
   assert.deepEqual(findBrokenStat({ people: 50, money: 0, court: 50, heart: 50 }), { key: 'money', side: 'low' });
-  assert.deepEqual(findBrokenStat({ people: 50, money: 50, court: 50, heart: 100 }), { key: 'heart', side: 'high' });
+  assert.deepEqual(findBrokenStat({ people: 50, money: 50, court: 50, heart: 100 }), null);
 });
 
 test('fxMagnitude buckets absolute deltas into 0..3', () => {

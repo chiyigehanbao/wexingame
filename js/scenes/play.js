@@ -6,24 +6,25 @@ import {
 } from '../core/screen.js';
 import { go } from '../core/router.js';
 import {
-  play, chime, ambient,
+  play, chime, ambient, warmPlaySounds,
 } from '../core/audio.js';
 import { vibrate, setShareTitle } from '../core/platform.js';
 import {
-  clamp, damp, easeOutCubic, easeInCubic, easeOutBack, progress,
+  clamp, damp, followGrab, easeOutCubic, easeInCubic, easeOutBack, progress,
 } from '../core/tween.js';
 import { CARDS } from '../data/cards.js';
 import { CHARACTERS } from '../data/characters.js';
 import { ENDINGS } from '../data/endings.js';
 import {
-  createRun, drawCard, choose, formatCardText, seasonOf, careerAge, RANKS,
+  createRun, drawCard, choose, formatCardText, seasonOf,
+  careerAge, yearOf, reignHeaderLines, clearReignHeader, foldNotice, waitingNotices, showingNotice, RANKS,
 } from '../game/run.js';
 import { echoOf } from '../data/echoes.js';
-import { STAT_KEYS, fxMagnitude } from '../game/stats.js';
-import { session, finishRun } from '../session.js';
+import { STAT_KEYS, applyFx, fxMagnitude } from '../game/stats.js';
+import { session, finishRun, saveProgress, clearProgress, consumeBlessing } from '../session.js';
 import { deskBackground } from '../ui/paper.js';
 import { COLORS, font, STAT_META } from '../ui/theme.js';
-import { wrapText, drawLines, countChars } from '../ui/text.js';
+import { wrapText, drawLines, countChars, bandFontSize } from '../ui/text.js';
 import {
   roundRect, drawSeal, Button, ButtonGroup,
 } from '../ui/widgets.js';
@@ -46,9 +47,11 @@ let phase = 'flip';
 let phaseT = 0;
 let t = 0;
 let idleT = 0;
+/** 首任引导晃过两次或玩家已动手，就不再晃。 */
+let guideDone = false;
 
 const drag = {
-  active: false, sx: 0, sy: 0, x: 0, y: 0, lx: 0, lt: 0, vx: 0, armed: false,
+  active: false, sx: 0, sy: 0, ox: 0, oy: 0, x: 0, y: 0, lx: 0, lt: 0, vx: 0, armed: false,
 };
 let cardX = 0;
 let cardY = 0;
@@ -62,6 +65,7 @@ let lastEcho = '';
 let pendingEcho = '';
 let notice = '';
 let noticeUntil = 0;
+let noticePending = [];
 
 const SEASON_LABEL = {
   spring: '春', summer: '夏', autumn: '秋', winter: '冬',
@@ -75,6 +79,21 @@ const SEASON_TINT = {
 const buttons = new ButtonGroup();
 let quitBtn = null;
 let quitArmedUntil = 0;
+let laidLines = 0;
+
+function currentHeaderLines() {
+  if (!run) {
+    return 1;
+  }
+  return reignHeaderLines({
+    year: yearOf(run.day),
+    season: SEASON_LABEL[seasonOf(run.day)],
+    rank: RANKS[run.rank] || '县令',
+    age: careerAge(run),
+    troops: run.rank >= 1 ? (run.troops || 0) : null,
+    width: W,
+  }).length;
+}
 
 function layout() {
   L.iconTop = SAFE_TOP + 8;
@@ -97,8 +116,19 @@ function layout() {
   L.cardCY = contentBottom - 18 - cardH / 2;
   L.textBottom = L.cardCY - cardH / 2 - gap;
   L.textTop = L.textBottom - textSlot;
-  L.deskTop = Math.round(L.cardCY + cardH * 0.18);
-  L.hintY = L.cardCY + cardH / 2 + 22;
+  const fitted = clearReignHeader({
+    reignY: L.reignY, cardH, textTop: L.textTop, lineCount: currentHeaderLines(), echo: 26,
+  });
+  if (fitted.shift) {
+    L.cardH = fitted.cardH;
+    L.cardW = L.cardH / 1.16;
+    L.cardCY += fitted.shift / 2;
+    L.textBottom += fitted.shift;
+    L.textTop += fitted.shift;
+  }
+  L.deskTop = Math.round(L.cardCY + L.cardH * 0.18);
+  L.hintY = L.cardCY + L.cardH / 2 + 22;
+  laidLines = currentHeaderLines();
   const margin = W * 0.14;
   L.statX = STAT_KEYS.map((_, i) => margin + ((W - margin * 2) / 3) * i);
 }
@@ -150,6 +180,10 @@ function commit(side) {
   }
 }
 
+function persist() {
+  saveProgress(run, card && card.id, lastEcho);
+}
+
 function finishFly() {
   if (run.ending) {
     phase = 'ending';
@@ -157,9 +191,11 @@ function finishFly() {
     return;
   }
   setCard(drawCard(run, CARDS, session.meta, Math.random));
+  persist();
 }
 
 function goEnding() {
+  clearProgress();
   const result = finishRun(run);
   const ending = ENDINGS[run.ending];
   setShareTitle(ending.share.replace('{d}', String(run.day)));
@@ -174,19 +210,46 @@ function makeButtons() {
     x: 10, y: H - SAFE_BOTTOM - 34, w: 76, h: 30, kind: 'text', label: '退堂', fontSize: 13,
     color: 'rgba(251, 246, 234, 0.7)',
     onTap: (x, y) => {
+      if (run.ending) {
+        return;
+      }
       if (t < quitArmedUntil) {
+        persist();
         go('title', {}, { x, y });
         return;
       }
       quitArmedUntil = t + 2.2;
     },
   }));
+  buttons.add(new Button({
+    x: W - 86, y: H - SAFE_BOTTOM - 34, w: 76, h: 30, kind: 'text', label: '朝廷', fontSize: 13,
+    color: 'rgba(251, 246, 234, 0.7)',
+    onTap: (x, y) => {
+      if (run.ending) {
+        return;
+      }
+      persist();
+      go('court', {}, { x, y });
+    },
+  }));
 }
 
 export default {
-  enter() {
-    layout();
-    run = createRun(session.meta);
+  enter(params = {}) {
+    warmPlaySounds();
+    if (Number.isInteger(params.slot)) {
+      session.slot = params.slot;
+    }
+    const saved = session.slots[session.slot];
+    const resume = saved && saved.run && !saved.run.ending;
+    run = resume ? saved.run : createRun(session.meta);
+    if (!resume) {
+      const blessing = consumeBlessing();
+      if (blessing) {
+        run.stats = applyFx(run.stats, blessing);
+        run.notice = '香火还在';
+      }
+    }
     session.run = run;
     STAT_KEYS.forEach((k) => {
       shown[k] = run.stats[k];
@@ -196,19 +259,33 @@ export default {
     brokenKey = null;
     lastEcho = '';
     pendingEcho = '';
-    notice = '';
-    noticeUntil = 0;
+    const onScreen = showingNotice(run);
+    notice = onScreen.text;
+    noticeUntil = onScreen.left;
+    noticePending = waitingNotices(run);
     drag.active = false;
     t = 0;
     quitArmedUntil = 0;
     textAlpha = 1;
+    guideDone = session.meta.runs > 0 || (resume && run.draws > 2);
     makeButtons();
-    setCard(drawCard(run, CARDS, session.meta, Math.random));
+    layout();
+    const existing = resume && CARDS.find((c) => c.id === saved.cardId);
+    if (existing) {
+      pendingEcho = saved.echo || '';
+      setCard(existing);
+    } else {
+      setCard(drawCard(run, CARDS, session.meta, Math.random));
+    }
+    persist();
   },
 
   update(dt, now) {
     t += dt;
     phaseT += dt;
+    if (currentHeaderLines() !== laidLines) {
+      layout();
+    }
     buttons.update(dt);
     quitBtn.label = t < quitArmedUntil ? '再点退堂' : '退堂';
     ambient(now, 0.1);
@@ -223,12 +300,24 @@ export default {
       }
     });
     shownDay = damp(shownDay, run.day, 8, dt);
-    if (run.notice) {
-      notice = `升为${run.notice}`;
-      noticeUntil = t + 2.4;
-      run.notice = '';
-      chime(true);
+    const folded = foldNotice({
+      showing: notice,
+      until: noticeUntil,
+      pending: noticePending,
+      now: t,
+      incoming: run.notice || '',
+    });
+    run.notice = '';
+    if (folded.chime) {
+      chime(folded.high);
     }
+    notice = folded.notice;
+    noticeUntil = folded.until;
+    noticePending = folded.pending;
+    run.noticeQueue = folded.pending;
+    const left = Math.max(0, folded.until - t);
+    run.noticeLine = left > 0 && folded.notice ? folded.notice : '';
+    run.noticeLeft = run.noticeLine ? left : 0;
 
     if (phase === 'flip' && phaseT >= FLIP_DUR) {
       phase = 'idle';
@@ -254,13 +343,28 @@ export default {
         cardY = drag.y;
         idleT = 0;
       } else {
-        cardX = damp(cardX, 0, 16, dt);
-        cardY = damp(cardY, 0, 16, dt);
+        cardX = damp(cardX, 0, 36, dt);
+        cardY = damp(cardY, 0, 36, dt);
+        if (Math.abs(cardX) < 1) {
+          cardX = 0;
+        }
+        if (Math.abs(cardY) < 1) {
+          cardY = 0;
+        }
         idleT += dt;
-        if (session.meta.runs === 0 && run.draws <= 3 && idleT > 2.6) {
-          const w = (idleT - 2.6) % 3;
-          if (w < 1) {
-            cardX = Math.sin(w * Math.PI * 4) * 14 * (1 - w);
+        if (!guideDone && session.meta.runs === 0 && run.draws <= 2) {
+          const textReady = reveal >= countChars(lines);
+          if (textReady && idleT > 2.4) {
+            const elapsed = idleT - 2.4;
+            const cycle = Math.floor(elapsed / 3.4);
+            if (cycle >= 2) {
+              guideDone = true;
+            } else {
+              const w = elapsed % 3.4;
+              if (w < 0.95) {
+                cardX = Math.sin(w * Math.PI * 4) * 12 * (1 - w / 0.95);
+              }
+            }
           }
         }
       }
@@ -298,8 +402,10 @@ export default {
     if (phase !== 'idle' || y < L.textTop) {
       return;
     }
+    guideDone = true;
     Object.assign(drag, {
-      active: true, sx: x, sy: y, x: cardX, y: cardY, lx: x, lt: Date.now(), vx: 0, armed: false,
+      active: true, sx: x, sy: y, ox: cardX, oy: cardY, x: cardX, y: cardY,
+      lx: x, lt: Date.now(), vx: 0, armed: Math.abs(cardX) > W * 0.18,
     });
   },
 
@@ -313,14 +419,16 @@ export default {
     drag.vx = drag.vx * 0.6 + ((x - drag.lx) / dtMs) * 0.4;
     drag.lx = x;
     drag.lt = now;
-    drag.x = x - drag.sx;
-    drag.y = (y - drag.sy) * 0.25;
-    const armed = Math.abs(drag.x) > W * 0.22;
+    drag.x = followGrab(drag.ox, drag.sx, x);
+    drag.y = followGrab(drag.oy, drag.sy, y, 0.25);
+    const armed = Math.abs(drag.x) > W * 0.18;
     if (armed !== drag.armed) {
       drag.armed = armed;
       if (armed) {
         vibrate('light');
         play('tick', 0.5);
+      } else {
+        play('tick', 0.22);
       }
     }
   },
@@ -332,11 +440,18 @@ export default {
     if (!drag.active) {
       return;
     }
+    drag.x = followGrab(drag.ox, drag.sx, x);
+    drag.y = followGrab(drag.oy, drag.sy, y, 0.25);
+    cardX = drag.x;
+    cardY = drag.y;
     drag.active = false;
     const dx = drag.x;
+    const travel = x - drag.sx;
     const flick = Math.abs(drag.vx) > 0.7 && Math.abs(dx) > 30 && Math.sign(drag.vx) === Math.sign(dx);
-    if (Math.abs(dx) > W * 0.22 || flick) {
+    if (Math.abs(dx) > W * 0.18 || flick) {
       commit(dx > 0 ? 'right' : 'left');
+    } else if (Math.abs(travel) > 12) {
+      play('paper', 0.28);
     }
   },
 };
@@ -464,15 +579,24 @@ function drawReign(ctx) {
   ctx.textBaseline = 'middle';
   const season = SEASON_LABEL[seasonOf(run.day)];
   const rank = RANKS[run.rank] || '县令';
-  ctx.fillText(`${season} · ${rank} · ${careerAge(run)}岁`, W / 2, L.reignY);
+  const year = yearOf(run.day);
+  const header = reignHeaderLines({
+    year, season, rank, age: careerAge(run),
+    troops: run.rank >= 1 ? (run.troops || 0) : null,
+    width: W,
+  });
+  header.forEach((ln, i) => {
+    ctx.fillText(ln, W / 2, L.reignY + i * 16);
+  });
+  const subY = L.reignY + (header.length > 1 ? 36 : 20);
   ctx.font = font(13);
   if (t < noticeUntil && notice) {
     ctx.fillStyle = COLORS.redDeep;
     ctx.font = font(14, 'bold');
-    ctx.fillText(notice, W / 2, L.reignY + 20);
+    ctx.fillText(notice, W / 2, subY);
   } else {
     ctx.fillStyle = COLORS.ink;
-    ctx.fillText(`第 ${Math.round(shownDay)} 天 · 稳住能升官 · 不慎就被撤`, W / 2, L.reignY + 20);
+    ctx.fillText(`第 ${Math.round(shownDay)} 天`, W / 2, subY);
   }
 }
 
@@ -566,7 +690,7 @@ function drawCardFront(ctx, c, w, h, amt) {
     ctx.fillStyle = 'rgba(43, 38, 34, 0.92)';
     ctx.fillRect(-w / 2 + 12, by, w - 24, bandH);
     ctx.fillStyle = COLORS.card;
-    ctx.font = font(19, 'bold');
+    ctx.font = font(bandFontSize(label, w), 'bold');
     ctx.textAlign = cardX >= 0 ? 'left' : 'right';
     ctx.fillText(label, cardX >= 0 ? -w / 2 + 26 : w / 2 - 26, by + bandH / 2);
     ctx.globalAlpha = 1;
@@ -652,7 +776,8 @@ function drawChoices(ctx) {
     ['left', card.left?.label || '', 18, 'left'],
     ['right', card.right?.label || '', W - 18, 'right'],
   ].forEach(([side, label, x, align]) => {
-    const wob = hot ? 0 : Math.sin(t * 3) * 3;
+    const guideWob = !guideDone && session.meta.runs === 0 && run.draws <= 2;
+    const wob = hot || !guideWob ? 0 : Math.sin(t * 3) * 3;
     const mark = side === 'left' ? '‹ ' : ' ›';
     const text = side === 'left' ? `${mark}${label}` : `${label}${mark}`;
     const dx = side === 'left' ? -wob : wob;

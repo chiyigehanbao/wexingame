@@ -27,7 +27,7 @@
     "useCompilerPlugins": false
   },
   "compileType": "game",
-  "libVersion": "latest",
+  "libVersion": "3.16.0",
   "appid": "wxba783816a3b19542",
   "projectname": "xiantaiye",
   "condition": {
@@ -51,14 +51,42 @@
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": ".cursor" },
-      { "type": "folder", "value": "docs" },
-      { "type": "folder", "value": "tests" },
-      { "type": "file", "value": "package.json" },
-      { "type": "file", "value": ".eslintrc.js" },
-      { "type": "suffix", "value": ".md" },
-      { "type": "suffix", "value": ".sh" },
-      { "type": "suffix", "value": ".dot" }
+      {
+        "value": ".cursor",
+        "type": "folder"
+      },
+      {
+        "value": ".agents",
+        "type": "folder"
+      },
+      {
+        "value": "docs",
+        "type": "folder"
+      },
+      {
+        "value": "tests",
+        "type": "folder"
+      },
+      {
+        "value": "package.json",
+        "type": "file"
+      },
+      {
+        "value": ".eslintrc.js",
+        "type": "file"
+      },
+      {
+        "value": ".md",
+        "type": "suffix"
+      },
+      {
+        "value": ".sh",
+        "type": "suffix"
+      },
+      {
+        "value": ".dot",
+        "type": "suffix"
+      }
     ],
     "include": []
   },

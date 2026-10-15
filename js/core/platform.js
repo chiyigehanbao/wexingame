@@ -2,9 +2,11 @@
  * 存档、震动、分享等微信平台能力（全部容错，模拟器缺失 API 时静默跳过）。
  */
 import { normalizeMeta } from '../game/meta.js';
+import { normalizeSlots } from '../game/slots.js';
 
 const META_KEY = 'xty_meta_v1';
 const SETTINGS_KEY = 'xty_settings_v1';
+const SLOTS_KEY = 'xty_slots_v1';
 
 function read(key) {
   try {
@@ -24,6 +26,8 @@ function write(key, value) {
 
 export const loadMeta = () => normalizeMeta(read(META_KEY));
 export const saveMeta = (meta) => write(META_KEY, meta);
+export const loadSlots = () => normalizeSlots(read(SLOTS_KEY));
+export const saveSlots = (slots) => write(SLOTS_KEY, slots);
 
 export function loadSettings() {
   const s = read(SETTINGS_KEY);

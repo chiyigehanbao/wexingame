@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>县太爷预览</title>
+  <style>
+    html, body { margin: 0; background: #111; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script>
+    const handlers = {};
+    const store = {};
+    let mainCanvasTaken = false;
+    const info = {
+      windowWidth: 375,
+      windowHeight: 812,
+      pixelRatio: 2,
+      statusBarHeight: 44,
+      safeArea: { top: 47, bottom: 778 },
+    };
+    globalThis.GameGlobal = globalThis;
+    globalThis.wx = {
+      createCanvas() {
+        if (!mainCanvasTaken) {
+          mainCanvasTaken = true;
+          return document.getElementById('game');
+        }
+        return document.createElement('canvas');
+      },
+      getWindowInfo: () => info,
+      getSystemInfoSync: () => info,
+      getMenuButtonBoundingClientRect: () => ({ top: 48, bottom: 80, left: 281, right: 365, width: 84, height: 32 }),
+      getStorageSync: (k) => (k in store ? JSON.parse(store[k]) : ''),
+      setStorageSync: (k, v) => { store[k] = JSON.stringify(v); },
+      onTouchStart: (f) => { handlers.start = f; },
+      onTouchMove: (f) => { handlers.move = f; },
+      onTouchEnd: (f) => { handlers.end = f; },
+      onTouchCancel: (f) => { handlers.cancel = f; },
+      onShow() {},
+      vibrateShort() {},
+      showShareMenu() {},
+      onShareAppMessage() {},
+      onShareTimeline() {},
+      shareAppMessage() {},
+      createWebAudioContext: () => new AudioContext(),
+    };
+    function fire(type, x, y) {
+      const t = { identifier: 0, clientX: x, clientY: y };
+      const e = { touches: type === 'end' || type === 'cancel' ? [] : [t], changedTouches: [t] };
+      handlers[type]?.(e);
+    }
+    const canvas = document.getElementById('game');
+    canvas.addEventListener('pointerdown', (e) => fire('start', e.offsetX, e.offsetY));
+    canvas.addEventListener('pointermove', (e) => { if (e.buttons) fire('move', e.offsetX, e.offsetY); });
+    canvas.addEventListener('pointerup', (e) => fire('end', e.offsetX, e.offsetY));
+    canvas.addEventListener('pointercancel', (e) => fire('cancel', e.offsetX, e.offsetY));
+  </script>
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

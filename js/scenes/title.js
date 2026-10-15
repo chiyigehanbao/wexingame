@@ -6,10 +6,10 @@ import { go } from '../core/router.js';
 import { play, ambient } from '../core/audio.js';
 import { vibrate } from '../core/platform.js';
 import { easeOutCubic, progress } from '../core/tween.js';
-import { RANKS } from '../game/run.js';
+import { RANKS, titleRecordLines } from '../game/ranks.js';
 import { session, toggleSound } from '../session.js';
 import { titleBackground } from '../ui/paper.js';
-import { COLORS, font } from '../ui/theme.js';
+import { COLORS, font, songFont } from '../ui/theme.js';
 import { drawLivingText } from '../ui/text.js';
 import { Button, ButtonGroup, drawSeal } from '../ui/widgets.js';
 
@@ -43,12 +43,22 @@ function layoutButtons() {
     onTap: (x, y) => {
       play('gavel', 0.9);
       vibrate('medium');
-      go('play', {}, { x, y });
+      const occupied = session.slots.findIndex(Boolean);
+      if (occupied < 0) {
+        session.slot = 0;
+        go('play', { slot: 0 }, { x, y });
+        return;
+      }
+      go('slots', {}, { x, y });
     },
   }));
   buttons.add(new Button({
     x: (W - bw) / 2, y: by + 68, w: bw, h: 46, label: '历任档案', kind: 'ghost',
     onTap: (x, y) => go('archive', {}, { x, y }),
+  }));
+  buttons.add(new Button({
+    x: (W - bw) / 2, y: by + 124, w: bw, h: 36, label: '规矩', kind: 'text', fontSize: 15,
+    onTap: (x, y) => go('rules', {}, { x, y }),
   }));
   soundBtn = buttons.add(new Button({
     x: W / 2 - 50, y: H - SAFE_BOTTOM - 40, w: 100, h: 32, kind: 'text',
@@ -66,7 +76,7 @@ export default {
   update(dt, now) {
     t += dt;
     buttons.update(dt);
-    soundBtn.label = session.settings.sound ? '声音 · 开' : '声音 · 关';
+    soundBtn.label = session.settings.sound ? '堂上有声' : '堂上无声';
     petals.forEach((p, i) => {
       p.y += p.vy * dt;
       p.sway += p.swaySpeed * dt;
@@ -98,11 +108,11 @@ export default {
     const ty = H * 0.24;
     ctx.fillStyle = COLORS.ink;
     ctx.textBaseline = 'middle';
-    ctx.font = font(Math.min(60, W * 0.15), 'bold');
+    ctx.font = songFont(Math.min(60, W * 0.15), 'bold');
     drawLivingText(ctx, '县太爷', W / 2, ty, 10, t, {
       bounce: 42, sway: 5, rot: 0.07, stagger: 0.1,
     });
-    ctx.font = font(Math.min(26, W * 0.068));
+    ctx.font = songFont(Math.min(26, W * 0.068));
     ctx.fillStyle = COLORS.inkSoft;
     drawLivingText(ctx, '今天也很忙', W / 2, ty + 58, 8, t, {
       delay: 0.32, bounce: 22, sway: 3, rot: 0.04, stagger: 0.06,
@@ -127,13 +137,25 @@ export default {
     ctx.textBaseline = 'middle';
     ctx.fillText('一个穷县 · 一张公案 · 一堆麻烦事', W / 2, ty + 100 + (1 - lineA) * 8);
     ctx.fillStyle = COLORS.inkSoft;
-    ctx.fillText('四项稳住能升官，处理不好就被撤官', W / 2, ty + 126 + (1 - lineA) * 8);
+    ctx.fillText('堂下有人候着，就等你升堂。', W / 2, ty + 126 + (1 - lineA) * 8);
     ctx.globalAlpha = 1;
     const m = session.meta;
+    ctx.textAlign = 'center';
+    let recordLines = 0;
     if (m.runs > 0) {
-      ctx.textAlign = 'center';
-      const rank = m.bestRank > 0 ? ` · 官至${RANKS[m.bestRank] || ''}` : '';
-      ctx.fillText(`已历 ${m.runs} 任 · 最长在任 ${m.best} 天${rank}`, W / 2, ty + 150);
+      const rank = m.bestRank > 0 ? (RANKS[m.bestRank] || '') : '';
+      const lines = titleRecordLines({
+        runs: m.runs, best: m.best, rank, width: W,
+      });
+      recordLines = lines.length;
+      lines.forEach((ln, i) => {
+        ctx.fillText(ln, W / 2, ty + 150 + i * 18);
+      });
+    }
+    if (session.slots.some(Boolean)) {
+      ctx.fillStyle = COLORS.inkSoft;
+      const hintY = recordLines > 0 ? 150 + (recordLines - 1) * 18 + 24 : 150;
+      ctx.fillText('位子上还有没断完的，升堂先去认位子。', W / 2, ty + hintY);
     }
     ctx.globalAlpha = easeOutCubic(progress(t, 0.6, 0.6));
     buttons.draw(ctx);

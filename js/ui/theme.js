@@ -7,7 +7,7 @@ export const COLORS = {
   card: '#fbf6ea',
   ink: '#2b2622',
   inkSoft: '#5a5149',
-  muted: '#8c8170',
+  muted: '#5e554c',
   faint: 'rgba(43, 38, 34, 0.12)',
   red: '#b3342b',
   redDeep: '#8e2620',
@@ -16,9 +16,14 @@ export const COLORS = {
   wood: '#4a3528',
 };
 
-const SERIF = '"Songti SC", STSong, "Noto Serif CJK SC", "Source Han Serif SC", SimSun, serif';
+const SONG = '"Songti SC", STSong, "Noto Serif CJK SC", "Source Han Serif SC", SimSun, serif';
+const HEI = '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif';
 
-export const font = (size, weight = 'normal') => `${weight} ${size}px ${SERIF}`;
+/** 标题「县太爷 / 今天也很忙」和印章用宋体。 */
+export const songFont = (size, weight = 'normal') => `${weight} ${size}px ${SONG}`;
+
+/** 其余界面和正文用黑体，默认加粗，避免细宋体看不清。 */
+export const font = (size, weight = 'bold') => `${weight} ${size}px ${HEI}`;
 
 export const STAT_META = {
   people: { label: '民心', glyph: '民' },

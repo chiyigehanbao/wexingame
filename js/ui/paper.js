@@ -12,40 +12,6 @@ function seeded(seed) {
   };
 }
 
-function paintPaper(g, w, h, rnd) {
-  g.fillStyle = COLORS.paper;
-  g.fillRect(0, 0, w, h);
-
-  const vig = g.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.3, w / 2, h * 0.5, Math.max(w, h) * 0.75);
-  vig.addColorStop(0, 'rgba(228, 216, 191, 0)');
-  vig.addColorStop(1, 'rgba(196, 178, 146, 0.55)');
-  g.fillStyle = vig;
-  g.fillRect(0, 0, w, h);
-
-  g.lineCap = 'round';
-  for (let i = 0; i < 520; i += 1) {
-    const x = rnd() * w;
-    const y = rnd() * h;
-    const len = 4 + rnd() * 16;
-    const a = rnd() * Math.PI;
-    g.strokeStyle = `rgba(90, 70, 45, ${0.03 + rnd() * 0.05})`;
-    g.lineWidth = 0.4 + rnd() * 0.6;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.quadraticCurveTo(
-      x + Math.cos(a) * len * 0.5 + (rnd() - 0.5) * 4,
-      y + Math.sin(a) * len * 0.5 + (rnd() - 0.5) * 4,
-      x + Math.cos(a) * len,
-      y + Math.sin(a) * len,
-    );
-    g.stroke();
-  }
-  for (let i = 0; i < 900; i += 1) {
-    g.fillStyle = `rgba(70, 55, 35, ${rnd() * 0.06})`;
-    g.fillRect(rnd() * w, rnd() * h, 1, 1);
-  }
-}
-
 function ridge(g, w, baseY, amp, rnd, color, mistTo) {
   const pts = [];
   const seeds = [rnd() * 10, rnd() * 10, rnd() * 10];
@@ -72,11 +38,87 @@ function ridge(g, w, baseY, amp, rnd, color, mistTo) {
 let paperLayer = null;
 let titleLayer = null;
 let deskLayer = null;
+let deskGen = 0;
+const visualJobs = [];
+
+function fillBase(g) {
+  g.fillStyle = COLORS.paper;
+  g.fillRect(0, 0, W, H);
+}
+
+function enqueuePaper(g, seed, finish) {
+  const rnd = seeded(seed);
+  let phase = 0;
+  let n = 0;
+  visualJobs.push(() => {
+    if (phase === 0) {
+      const vig = g.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.3, W / 2, H * 0.5, Math.max(W, H) * 0.75);
+      vig.addColorStop(0, 'rgba(228, 216, 191, 0)');
+      vig.addColorStop(1, 'rgba(196, 178, 146, 0.55)');
+      g.fillStyle = vig;
+      g.fillRect(0, 0, W, H);
+      g.lineCap = 'round';
+      phase = 1;
+      return false;
+    }
+    if (phase === 1) {
+      const end = Math.min(520, n + 52);
+      for (; n < end; n += 1) {
+        const x = rnd() * W;
+        const y = rnd() * H;
+        const len = 4 + rnd() * 16;
+        const a = rnd() * Math.PI;
+        g.strokeStyle = `rgba(90, 70, 45, ${0.03 + rnd() * 0.05})`;
+        g.lineWidth = 0.4 + rnd() * 0.6;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.quadraticCurveTo(
+          x + Math.cos(a) * len * 0.5 + (rnd() - 0.5) * 4,
+          y + Math.sin(a) * len * 0.5 + (rnd() - 0.5) * 4,
+          x + Math.cos(a) * len,
+          y + Math.sin(a) * len,
+        );
+        g.stroke();
+      }
+      if (n >= 520) {
+        phase = 2;
+        n = 0;
+      }
+      return false;
+    }
+    const end = Math.min(900, n + 120);
+    for (; n < end; n += 1) {
+      g.fillStyle = `rgba(70, 55, 35, ${rnd() * 0.06})`;
+      g.fillRect(rnd() * W, rnd() * H, 1, 1);
+    }
+    if (n < 900) {
+      return false;
+    }
+    if (finish) {
+      finish(rnd);
+    }
+    return true;
+  });
+}
+
+/** 每帧只补一小块纸纹，不在翻牌、滑动时整张重画。 */
+export function pumpVisuals() {
+  const job = visualJobs[0];
+  if (job && job()) {
+    visualJobs.shift();
+  }
+}
+
+/** 进升堂时丢掉还在画的标题纸纹，别跟公案抢帧。 */
+export function clearVisualJobs() {
+  visualJobs.length = 0;
+}
 
 export function paperBackground() {
   if (!paperLayer) {
     paperLayer = createLayer(W, H);
-    paintPaper(paperLayer.ctx, W, H, seeded(7));
+    fillBase(paperLayer.ctx);
+    enqueuePaper(paperLayer.ctx, 7);
   }
   return paperLayer;
 }
@@ -86,17 +128,18 @@ export function titleBackground() {
   if (!titleLayer) {
     titleLayer = createLayer(W, H);
     const g = titleLayer.ctx;
-    const rnd = seeded(11);
-    paintPaper(g, W, H, rnd);
-    const sun = g.createRadialGradient(W * 0.72, H * 0.5, 0, W * 0.72, H * 0.5, W * 0.16);
-    sun.addColorStop(0, 'rgba(179, 52, 43, 0.22)');
-    sun.addColorStop(0.85, 'rgba(179, 52, 43, 0.16)');
-    sun.addColorStop(1, 'rgba(179, 52, 43, 0)');
-    g.fillStyle = sun;
-    g.fillRect(0, 0, W, H);
-    ridge(g, W, H * 0.66, H * 0.07, rnd, 'rgba(43, 38, 34, 0.16)', H * 0.86);
-    ridge(g, W, H * 0.76, H * 0.06, rnd, 'rgba(43, 38, 34, 0.26)', H * 0.95);
-    ridge(g, W, H * 0.88, H * 0.05, rnd, 'rgba(43, 38, 34, 0.42)', H * 1.05);
+    fillBase(g);
+    enqueuePaper(g, 11, (rnd) => {
+      const sun = g.createRadialGradient(W * 0.72, H * 0.5, 0, W * 0.72, H * 0.5, W * 0.16);
+      sun.addColorStop(0, 'rgba(179, 52, 43, 0.22)');
+      sun.addColorStop(0.85, 'rgba(179, 52, 43, 0.16)');
+      sun.addColorStop(1, 'rgba(179, 52, 43, 0)');
+      g.fillStyle = sun;
+      g.fillRect(0, 0, W, H);
+      ridge(g, W, H * 0.66, H * 0.07, rnd, 'rgba(43, 38, 34, 0.16)', H * 0.86);
+      ridge(g, W, H * 0.76, H * 0.06, rnd, 'rgba(43, 38, 34, 0.26)', H * 0.95);
+      ridge(g, W, H * 0.88, H * 0.05, rnd, 'rgba(43, 38, 34, 0.42)', H * 1.05);
+    });
   }
   return titleLayer;
 }
@@ -104,38 +147,44 @@ export function titleBackground() {
 /** 游戏页：宣纸 + 淡水印「衙」+ 底部公案木纹 */
 export function deskBackground(deskTop) {
   if (!deskLayer || deskLayer.deskTop !== deskTop) {
+    clearVisualJobs();
+    deskGen += 1;
+    const gen = deskGen;
     deskLayer = createLayer(W, H);
     deskLayer.deskTop = deskTop;
     const g = deskLayer.ctx;
-    const rnd = seeded(23);
-    paintPaper(g, W, H, rnd);
+    fillBase(g);
+    enqueuePaper(g, 23, (rnd) => {
+      if (gen !== deskGen) {
+        return;
+      }
+      g.save();
+      g.globalAlpha = 0.03;
+      g.fillStyle = COLORS.ink;
+      g.font = `bold ${Math.round(W * 0.72)}px serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText('衙', W / 2, H * 0.7);
+      g.restore();
 
-    g.save();
-    g.globalAlpha = 0.03;
-    g.fillStyle = COLORS.ink;
-    g.font = `bold ${Math.round(W * 0.72)}px serif`;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText('衙', W / 2, H * 0.7);
-    g.restore();
-
-    const wood = g.createLinearGradient(0, deskTop, 0, H);
-    wood.addColorStop(0, '#5a4130');
-    wood.addColorStop(0.08, COLORS.wood);
-    wood.addColorStop(1, '#2e2119');
-    g.fillStyle = wood;
-    g.fillRect(0, deskTop, W, H - deskTop);
-    for (let i = 0; i < 26; i += 1) {
-      const y = deskTop + 6 + rnd() * (H - deskTop - 6);
-      g.strokeStyle = `rgba(20, 12, 8, ${0.12 + rnd() * 0.15})`;
-      g.lineWidth = 0.6 + rnd();
-      g.beginPath();
-      g.moveTo(0, y);
-      g.bezierCurveTo(W * 0.3, y + (rnd() - 0.5) * 8, W * 0.7, y + (rnd() - 0.5) * 8, W, y + (rnd() - 0.5) * 6);
-      g.stroke();
-    }
-    g.fillStyle = 'rgba(255, 220, 170, 0.18)';
-    g.fillRect(0, deskTop, W, 1.5);
+      const wood = g.createLinearGradient(0, deskTop, 0, H);
+      wood.addColorStop(0, '#5a4130');
+      wood.addColorStop(0.08, COLORS.wood);
+      wood.addColorStop(1, '#2e2119');
+      g.fillStyle = wood;
+      g.fillRect(0, deskTop, W, H - deskTop);
+      for (let i = 0; i < 26; i += 1) {
+        const y = deskTop + 6 + rnd() * (H - deskTop - 6);
+        g.strokeStyle = `rgba(20, 12, 8, ${0.12 + rnd() * 0.15})`;
+        g.lineWidth = 0.6 + rnd();
+        g.beginPath();
+        g.moveTo(0, y);
+        g.bezierCurveTo(W * 0.3, y + (rnd() - 0.5) * 8, W * 0.7, y + (rnd() - 0.5) * 8, W, y + (rnd() - 0.5) * 6);
+        g.stroke();
+      }
+      g.fillStyle = 'rgba(255, 220, 170, 0.18)';
+      g.fillRect(0, deskTop, W, 1.5);
+    });
   }
   return deskLayer;
 }

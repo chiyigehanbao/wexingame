@@ -78,6 +78,13 @@ export function countChars(lines) {
   return lines.reduce((s, l) => s + l.length, 0);
 }
 
+/** 拖牌横条里的做法。条子比牌窄 38。七个字用 19 会画出条子。 */
+export function bandFontSize(label, cardW) {
+  const avail = Math.max(0, cardW - 38);
+  const chars = Math.max(1, [...String(label || '')].length);
+  return Math.max(12, Math.min(19, Math.floor(avail / chars)));
+}
+
 /**
  * 逐字绘制（字间距），用于大标题。
  */

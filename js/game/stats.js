@@ -36,16 +36,14 @@ export function applyFx(stats, fx) {
 }
 
 /**
- * @returns {{ key: string, side: 'low'|'high' } | null}
+ * 见底才收场。见顶是事情办好了，不因此下台。
+ * @returns {{ key: string, side: 'low' } | null}
  */
 export function findBrokenStat(stats) {
   for (let i = 0; i < STAT_KEYS.length; i += 1) {
     const k = STAT_KEYS[i];
     if (stats[k] <= STAT_MIN) {
       return { key: k, side: 'low' };
-    }
-    if (stats[k] >= STAT_MAX) {
-      return { key: k, side: 'high' };
     }
   }
   return null;

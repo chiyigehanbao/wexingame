@@ -50,6 +50,30 @@ export const CHARACTERS = {
     name: '钦差', role: '朝廷来使', seal: '钦', shape: 'square', color: '#1f3f6b',
     bio: '奉旨巡查。一张脸比圣旨还难懂。',
   },
+  yanshang: {
+    name: '盐牙', role: '盐商', seal: '盐', shape: 'round', color: '#8a6b2a',
+    bio: '盐引在他手里，比官印还听使唤。笑的时候眼睛不开。',
+  },
+  menzi: {
+    name: '小安', role: '门子', seal: '门', shape: 'round', color: '#6a5a4a',
+    bio: '专管挡人、传话、装病。嘴比门槛还杂。',
+  },
+  linling: {
+    name: '邻县令', role: '邻官', seal: '邻', shape: 'square', color: '#4a5a6a',
+    bio: '跟你隔一条界河。见面称兄道弟，写信寸步不让。',
+  },
+  caoding: {
+    name: '漕头', role: '漕丁', seal: '漕', shape: 'round', color: '#3a5a7a',
+    bio: '粮船听他的号子。误了期，他比你还急。',
+  },
+  ancha: {
+    name: '按察', role: '按察使', seal: '按', shape: 'square', color: '#5a2a4a',
+    bio: '一路的脸。白天查贪，夜里喝酒，酒后未必说真话。',
+  },
+  shizhe: {
+    name: '使者', role: '邻国使', seal: '使', shape: 'square', color: '#2a4a5a',
+    bio: '过境借道的人。礼单很薄，话里有钉子。',
+  },
 };
 
 export const CHARACTER_ORDER = Object.keys(CHARACTERS);

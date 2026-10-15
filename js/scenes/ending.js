@@ -7,12 +7,14 @@ import {
 import { go } from '../core/router.js';
 import { play } from '../core/audio.js';
 import { vibrate, shareNow } from '../core/platform.js';
+import { adsReady, maybeInterstitial, showRewarded } from '../core/ads.js';
+import { session, keepBlessing } from '../session.js';
 import {
   clamp, easeInCubic, easeOutCubic, progress,
 } from '../core/tween.js';
 import { ENDINGS, ENDING_ORDER } from '../data/endings.js';
-import { RANKS, careerAge } from '../game/run.js';
-import { countEndings } from '../game/meta.js';
+import { RANKS, careerAge, yearOf } from '../game/run.js';
+import { achievementCount, countEndings } from '../game/meta.js';
 import { paperBackground } from '../ui/paper.js';
 import { COLORS, font } from '../ui/theme.js';
 import { wrapText, drawLines, countChars } from '../ui/text.js';
@@ -36,6 +38,10 @@ let stamped = false;
 const splats = [];
 const buttons = new ButtonGroup();
 const L = {};
+let incenseBtn = null;
+let incenseNote = '';
+let incenseBusy = false;
+let rewardedHere = false;
 
 function unlockNotes(before, after) {
   const out = [];
@@ -48,21 +54,51 @@ function unlockNotes(before, after) {
   return out;
 }
 
+function offerIncense() {
+  if (incenseBusy || session.meta.blessing) {
+    return;
+  }
+  incenseBusy = true;
+  showRewarded().then((ok) => {
+    incenseBusy = false;
+    if (!ok) {
+      incenseNote = '这炷香没点着';
+      return;
+    }
+    keepBlessing();
+    rewardedHere = true;
+    incenseNote = '香火备下了，下一任用';
+    if (incenseBtn) {
+      incenseBtn.visible = false;
+    }
+  });
+}
+
 function layout() {
   L.seal = Math.min(116, W * 0.3);
   L.sealY = SAFE_TOP + 24 + L.seal / 2;
   L.titleY = L.sealY + L.seal / 2 + 56;
   L.infoY = L.titleY + 32;
-  L.textTop = L.infoY + 28;
+  L.textTop = L.infoY + 48;
   L.textW = W - 64;
   const bw = Math.min(240, W - 80);
   const by = H - SAFE_BOTTOM - 118;
   buttons.clear();
+  incenseBtn = null;
+  L.buttonsTop = by;
+  if (adsReady() && !session.meta.blessing) {
+    incenseBtn = buttons.add(new Button({
+      x: (W - bw) / 2, y: by - 48, w: bw, h: 40, label: '烧一炷香', kind: 'ghost', fontSize: 15,
+      onTap: () => offerIncense(),
+    }));
+    L.buttonsTop = by - 68;
+  }
   buttons.add(new Button({
-    x: (W - bw) / 2, y: by, w: bw, h: 52, label: '再任一届',
+    x: (W - bw) / 2, y: by, w: bw, h: 52, label: '再来一任',
     onTap: (x, y) => {
       play('gavel', 0.9);
-      go('play', {}, { x, y });
+      const ink = { x, y };
+      maybeInterstitial(session.meta.runs, rewardedHere).then(() => go('play', {}, ink));
     },
   }));
   const half = (bw - 12) / 2;
@@ -74,7 +110,6 @@ function layout() {
     x: (W - bw) / 2 + half + 12, y: by + 64, w: half, h: 42, label: '分享', kind: 'ghost', fontSize: 15,
     onTap: () => shareNow(),
   }));
-  L.buttonsTop = by;
 }
 
 function burst() {
@@ -97,9 +132,16 @@ export default {
     reveal = 0;
     stamped = false;
     splats.length = 0;
+    incenseNote = '';
+    incenseBusy = false;
+    rewardedHere = false;
     layout();
     lines = wrapText(screenCtx, ending.text, L.textW, TEXT_FONT);
     notes = unlockNotes(result.before, result.meta);
+    if (result.deed) {
+      const times = achievementCount(result.meta.achievements?.[result.deed.id]) || 1;
+      notes.unshift(times > 1 ? `功名 · ${result.deed.name} · 第${times}次` : `功名 · ${result.deed.name}`);
+    }
   },
 
   update(dt) {
@@ -154,32 +196,37 @@ export default {
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const titleFont = font(26, 'bold');
+    const titleLines = wrapText(ctx, ending.title, W - 32, titleFont).slice(0, 2);
+    const titleExtra = (titleLines.length - 1) * 30;
     ctx.fillStyle = COLORS.ink;
-    ctx.font = font(26, 'bold');
-    ctx.fillText(ending.title, W / 2, L.titleY);
+    ctx.font = titleFont;
+    drawLines(ctx, titleLines, W / 2, L.titleY - 15, 30);
 
     ctx.fillStyle = COLORS.muted;
     ctx.font = font(14);
+    ctx.textAlign = 'center';
     const rank = RANKS[run.rank] || '县令';
-    const info = `${rank} · ${careerAge(run)}岁 · 在任 ${run.day} 天 · 最长 ${result.meta.best} 天`;
-    ctx.fillText(info, W / 2, L.infoY);
+    const infoY = L.infoY + titleExtra;
+    ctx.fillText(`${rank} · ${careerAge(run)}岁 · 第${yearOf(run.day)}年`, W / 2, infoY);
+    ctx.fillText(`在任 ${run.day} 天 · 最长 ${result.meta.best} 天`, W / 2, infoY + 20);
 
     const tags = [];
     if (result.isNewEnding) {
-      tags.push('新结局');
+      tags.push('头一回见');
     }
     if (result.isBest && result.before.runs > 0) {
-      tags.push('新纪录');
+      tags.push('在任更久');
     }
     tags.forEach((tag, i) => {
-      const tx = W / 2 + (i - (tags.length - 1) / 2) * 78;
+      const tx = W / 2 + (i - (tags.length - 1) / 2) * 96;
       const ty = L.sealY + L.seal / 2 + 22;
       ctx.save();
       ctx.translate(tx + (i % 2 ? 6 : -6), ty);
       ctx.rotate(i % 2 ? 0.06 : -0.06);
       ctx.strokeStyle = COLORS.red;
       ctx.lineWidth = 1.3;
-      roundRect(ctx, -28, -11, 56, 22, 3);
+      roundRect(ctx, -36, -11, 72, 22, 3);
       ctx.stroke();
       ctx.fillStyle = COLORS.red;
       ctx.font = font(12, 'bold');
@@ -189,7 +236,8 @@ export default {
 
     ctx.fillStyle = COLORS.ink;
     ctx.font = TEXT_FONT;
-    const textH = drawLines(ctx, lines, W / 2, L.textTop, TEXT_LINE, { visible: Math.floor(reveal) });
+    const textY = L.textTop + titleExtra;
+    const textH = drawLines(ctx, lines, W / 2, textY, TEXT_LINE, { visible: Math.floor(reveal) });
 
     const done = reveal >= countChars(lines);
     if (done && notes.length) {
@@ -197,7 +245,7 @@ export default {
       ctx.font = font(14);
       ctx.textAlign = 'center';
       notes.forEach((n, i) => {
-        const ny = L.textTop + textH + 22 + i * 24;
+        const ny = textY + textH + 22 + i * 24;
         if (ny < L.buttonsTop - 10) {
           ctx.fillText(n, W / 2, ny);
         }
@@ -205,6 +253,12 @@ export default {
     }
 
     ctx.globalAlpha = easeOutCubic(progress(t, STAMP_AT + STAMP_DUR + 0.7, 0.5));
+    if (adsReady() && (incenseNote || (incenseBtn && incenseBtn.visible))) {
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = font(12);
+      ctx.textAlign = 'center';
+      ctx.fillText(incenseNote || '这炷香看完，下一任暖一点', W / 2, L.buttonsTop + 12);
+    }
     buttons.draw(ctx);
     ctx.globalAlpha = 1;
 
@@ -212,7 +266,7 @@ export default {
     ctx.font = font(12);
     ctx.textAlign = 'center';
     ctx.globalAlpha = a * 0.8;
-    ctx.fillText(`结局 ${countEndings(result.meta)} / ${ENDING_ORDER.length}`, W / 2, H - SAFE_BOTTOM - 4);
+    ctx.fillText(`见过 ${countEndings(result.meta)} 种收场`, W / 2, H - SAFE_BOTTOM - 4);
     ctx.globalAlpha = 1;
     ctx.restore();
   },

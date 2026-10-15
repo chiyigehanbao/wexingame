@@ -4,7 +4,7 @@
 import { createLayer } from '../core/screen.js';
 import { damp } from '../core/tween.js';
 import { play } from '../core/audio.js';
-import { COLORS, font } from './theme.js';
+import { COLORS, font, songFont } from './theme.js';
 import { drawSpaced } from './text.js';
 
 export function roundRect(ctx, x, y, w, h, r) {
@@ -69,10 +69,10 @@ export function sealImage(text, size, shape = 'square', color = COLORS.red) {
   g.textBaseline = 'middle';
   const chars = [...text];
   if (chars.length === 1) {
-    g.font = font(Math.round(size * 0.52), 'bold');
+    g.font = songFont(Math.round(size * 0.52), 'bold');
     g.fillText(chars[0], size / 2, size / 2 + size * 0.02);
   } else {
-    g.font = font(Math.round(size * 0.36), 'bold');
+    g.font = songFont(Math.round(size * 0.36), 'bold');
     g.fillText(chars[0], size / 2, size * 0.31);
     g.fillText(chars[1], size / 2, size * 0.71);
   }
@@ -172,7 +172,7 @@ export class Button {
       ctx.fillStyle = this.color || (this.press > 0.5 ? COLORS.ink : COLORS.inkSoft);
       ctx.globalAlpha *= 1 - this.press * 0.4;
     }
-    ctx.font = font(this.fontSize || (this.kind === 'text' ? 15 : 18), this.kind === 'text' ? 'normal' : 'bold');
+    ctx.font = font(this.fontSize || (this.kind === 'text' ? 15 : 18), 'bold');
     ctx.textBaseline = 'middle';
     drawSpaced(ctx, this.label, 0, 1, this.kind === 'primary' ? 6 : 2);
     ctx.restore();
